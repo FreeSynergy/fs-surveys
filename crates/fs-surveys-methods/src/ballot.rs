@@ -16,6 +16,16 @@ pub enum Ballot {
 }
 
 impl Ballot {
+    /// Whether the ballot says nothing: an empty list. Such a ballot is not counted.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::Single(_) => false,
+            Self::Multiple(l) | Self::Ranking(l) => l.is_empty(),
+            Self::Scores(l) => l.is_empty(),
+        }
+    }
+
     /// Plain-English name of the ballot form.
     #[must_use]
     pub fn kind(&self) -> &'static str {

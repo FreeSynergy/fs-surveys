@@ -69,28 +69,29 @@ impl SurveyRepo {
         check_kind(q)?;
         check_range(q, method)?;
         let counted = self.collect(&survey, stage).await?;
-        let ballots: Vec<Ballot> = values_for(&survey, &counted.rows, question)
+        let (values, left_out) = values_for(&survey, &counted.rows, question);
+        let ballots: Vec<Ballot> = values
             .into_iter()
             .filter_map(|v| ballot_of(q.kind, v))
             .collect();
+        // Answers the per-question rule left out are held back for this question too.
+        let held_back = counted
+            .held_back
+            .saturating_add(u32::try_from(left_out).unwrap_or(u32::MAX));
         let mut out = Evaluation {
             method,
             winners: vec![],
             options: vec![],
             note: String::new(),
             hidden: survey.is_anonymous() && ballots.len() < usize::from(survey.min_group),
-            held_back: counted.held_back,
+            held_back,
         };
         if out.hidden {
             "too few answers to show".clone_into(&mut out.note);
             return Ok(out);
         }
-        let tally = evaluate_with_held_back(
-            &method,
-            &q.choice_ids(),
-            &ballots,
-            counted.held_back as usize,
-        )?;
+        let tally =
+            evaluate_with_held_back(&method, &q.choice_ids(), &ballots, held_back as usize)?;
         (out.winners, out.options, out.note) = (tally.winners, tally.options, tally.note);
         if survey.is_anonymous() && survey.state == SurveyState::Open {
             // A winner (or its absence) would change with each submit and show arrival times.

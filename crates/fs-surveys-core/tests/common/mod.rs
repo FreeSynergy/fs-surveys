@@ -179,3 +179,14 @@ pub fn count(sum: &fs_surveys_core::Summary, q: ObjectId, choice: &str) -> u32 {
         .find(|c| c.choice == choice)
         .map_or(0, |c| c.count)
 }
+
+impl Env {
+    /// True if the box holds no token hash (or there is no box yet).
+    pub async fn ballots_empty_tokens(&self, s: &Survey) -> bool {
+        use fs_store::traits::UnloggedObjects;
+        match self.ballots.read_unlogged(s.id()).await.unwrap() {
+            None => true,
+            Some(o) => o.content["tokens"].as_array().unwrap().is_empty(),
+        }
+    }
+}

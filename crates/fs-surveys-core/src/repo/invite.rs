@@ -11,6 +11,7 @@ use serde_json::json;
 use super::consts::INVITEE_TYPE;
 use super::envelope::context;
 use super::handle::SurveyRepo;
+use super::inflight::Mark;
 use crate::error::{Error, Result};
 use crate::model::{AS2_TYPE, Anonymity, InviteReport, Survey, SurveyState};
 use crate::random::token;
@@ -52,15 +53,16 @@ impl SurveyRepo {
         Ok(all)
     }
 
-    /// Deliver a fresh token, then keep its hash. Returns the hash, to undo it if need be.
-    async fn issue_token(&self, s: &Survey, person: &str) -> Result<String> {
+    /// Deliver a fresh token to `person` and return its hash. Runs outside the survey lock and
+    /// keeps nothing: the hash is stored by the caller, after the delivery succeeded.
+    async fn deliver(&self, survey: ObjectId, person: &str) -> Result<String> {
         let delivery = self
             .delivery
             .as_ref()
             .ok_or_else(|| Unsupported::new("survey.tokens", "no token delivery is configured"))?;
         let t = token()?;
         delivery
-            .send(person, s.id(), &t)
+            .send(person, survey, &t)
             .await
             .map_err(|e| match e {
                 Error::Delivery { .. } => e,
@@ -69,25 +71,10 @@ impl SurveyRepo {
                     reason: other.to_string(),
                 },
             })?;
-        let hash = hash_token(&t);
-        self.edit_box(s, |b| {
-            b.add_token(hash.clone());
-            Ok(())
-        })
-        .await?;
-        Ok(hash)
+        Ok(hash_token(&t))
     }
 
-    /// `survey.invite`, `survey.tokens`: stops at the first person whose delivery fails; people
-    /// before that stay invited (a second call lists them under `already`).
-    pub async fn invite(
-        &self,
-        id: ObjectId,
-        people: &[String],
-        groups: &[ObjectId],
-    ) -> Result<InviteReport> {
-        let _guard = self.lock_for(id).await;
-        let s = self.require(id).await?;
+    fn check_invitable(&self, s: &Survey) -> Result<()> {
         if s.anonymity == Anonymity::Public {
             return Err(
                 Unsupported::new("survey.publicLink", "open links are not built yet").into(),
@@ -104,27 +91,72 @@ impl SurveyRepo {
                 Unsupported::new("survey.tokens", "no token delivery is configured").into(),
             );
         }
+        Ok(())
+    }
+
+    /// Under the lock: is this person new, and may this caller deliver to them? `None` = already
+    /// invited, or another call is delivering to them right now.
+    async fn claim(&self, id: ObjectId, person: &str) -> Result<Option<Mark>> {
+        let _guard = self.lock_for(id).await;
+        self.check_invitable(&self.require(id).await?)?;
+        if self.is_invited(id, person).await? {
+            return Ok(None);
+        }
+        Ok(Mark::claim(&self.inflight, id, person))
+    }
+
+    /// Under the lock again: keep the hash (if any), then record the person.
+    async fn settle(&self, id: ObjectId, person: &str, hash: Option<String>) -> Result<()> {
+        let _guard = self.lock_for(id).await;
+        let s = self.require(id).await?;
+        self.check_invitable(&s)?;
+        if let Some(h) = &hash {
+            self.edit_box(&s, |b| {
+                b.add_token(h.clone());
+                Ok(())
+            })
+            .await?;
+        }
+        if let Err(e) = self.record_invitee(id, person).await {
+            if let Some(h) = hash {
+                self.edit_box(&s, |b| {
+                    b.spend(&h);
+                    Ok(())
+                })
+                .await?;
+            }
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// `survey.invite`, `survey.tokens`: stops at the first person whose delivery fails; people
+    /// before that stay invited (a second call lists them under `already`). The tokens are
+    /// delivered outside the survey lock, so a slow messenger does not hold up the survey.
+    pub async fn invite(
+        &self,
+        id: ObjectId,
+        people: &[String],
+        groups: &[ObjectId],
+    ) -> Result<InviteReport> {
+        {
+            let _guard = self.lock_for(id).await;
+            self.check_invitable(&self.require(id).await?)?;
+        }
+        let once = self.require(id).await?.anonymity == Anonymity::AnonymousOnce;
         let mut report = InviteReport::default();
         for person in self.people_of(people, groups).await? {
-            if self.is_invited(id, &person).await? {
+            let Some(mark) = self.claim(id, &person).await? else {
                 report.already.push(person);
                 continue;
-            }
-            let hash = if s.anonymity == Anonymity::AnonymousOnce {
-                Some(self.issue_token(&s, &person).await?)
+            };
+            let hash = if once {
+                Some(self.deliver(id, &person).await?)
             } else {
                 None
             };
-            if let Err(e) = self.record_invitee(id, &person).await {
-                if let Some(h) = hash {
-                    self.edit_box(&s, |b| {
-                        b.spend(&h);
-                        Ok(())
-                    })
-                    .await?;
-                }
-                return Err(e);
-            }
+            self.settle(id, &person, hash).await?;
+            drop(mark);
             report.invited.push(person);
         }
         Ok(report)

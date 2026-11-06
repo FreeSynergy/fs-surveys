@@ -2,8 +2,8 @@
 //!
 //! Exhausted ballots (no remaining choice ranked) leave the count. A winner needs more than half
 //! of the non-exhausted ballots. Several tied for lowest go out together only if their votes
-//! together are below the next count, otherwise nothing is decided. If every remaining choice is lowest, it is a tie and all are
-//! winners. Value is the votes in the round a choice left or won; ranks follow the round of
+//! together are below the next count, otherwise nothing is decided. If every remaining choice is lowest, it is a tie in a round and
+//! nothing is decided. Value is the votes in the round a choice left or won; ranks follow the round of
 //! elimination (later is better).
 //!
 //! Pattern: Strategy.
@@ -79,16 +79,11 @@ impl DecisionMethod for InstantRunoff {
                 for &i in &left {
                     key[i] = round + 1;
                 }
-                let winners = left.iter().map(|&i| choices[i].clone()).collect();
                 let note = format!(
-                    "All {} remaining choices are tied in round {round}; all are listed as winners.",
+                    "All {} remaining choices are tied in round {round}, so nothing is decided.",
                     left.len()
                 );
-                return Ok(Tally {
-                    winners,
-                    options: options(choices, &key, &value),
-                    note,
-                });
+                return Ok(undecided(choices, &key, &value, &note));
             }
             // Several tied for last go out together only if all their votes together are still
             // below the next count; otherwise the order of elimination would decide.

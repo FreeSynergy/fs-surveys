@@ -27,11 +27,11 @@ fn exhausted_ballots_leave_the_count() {
 }
 
 #[test]
-fn final_tie_lists_all_remaining() {
+fn final_tie_is_undecided() {
     // R1: A1 B1 C0, lowest C out (leaves two). R2: A1 B1 of 2, no majority, all lowest: tie.
     let b = [ranking(&["A", "B"]), ranking(&["B", "A"])];
     let t = evaluate(&Method::InstantRunoff, &ids(&["A", "B", "C"]), &b).unwrap();
-    assert_eq!(winners(&t), ["A", "B"]);
+    assert!(t.winners.is_empty(), "a tie in a round is undecided");
     assert!(t.note.contains("tied"));
     assert_eq!([rank(&t, "A"), rank(&t, "B"), rank(&t, "C")], [1, 1, 3]);
 }

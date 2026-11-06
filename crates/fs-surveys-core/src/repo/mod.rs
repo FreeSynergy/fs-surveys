@@ -9,6 +9,7 @@ mod envelope;
 mod evaluate;
 mod export;
 mod handle;
+mod inflight;
 mod invite;
 mod lifecycle;
 mod named;

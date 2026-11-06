@@ -84,11 +84,13 @@ impl SurveyRepo {
 /// The values given to `question`. On an anonymous survey a batch counts only if it holds at
 /// least `minGroup` answers to this question, or a conditional question would show a single
 /// answer through the difference between two readings.
+///
+/// The second number is how many answers that rule left out; they are held back for this question.
 pub(super) fn values_for<'a>(
     s: &Survey,
     rows: &'a [Row],
     question: ObjectId,
-) -> Vec<&'a AnswerValue> {
+) -> (Vec<&'a AnswerValue>, usize) {
     let mut by_batch: std::collections::BTreeMap<usize, Vec<&AnswerValue>> =
         std::collections::BTreeMap::default();
     for r in rows {
@@ -97,9 +99,9 @@ pub(super) fn values_for<'a>(
         }
     }
     let enough = |n: usize| !s.is_anonymous() || n >= usize::from(s.min_group);
-    by_batch
-        .into_values()
-        .filter(|v| enough(v.len()))
-        .flatten()
-        .collect()
+    let (kept, left_out): (Vec<_>, Vec<_>) = by_batch.into_values().partition(|v| enough(v.len()));
+    (
+        kept.into_iter().flatten().collect(),
+        left_out.iter().map(Vec::len).sum(),
+    )
 }

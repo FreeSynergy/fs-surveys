@@ -9,7 +9,7 @@ use serde_json::json;
 use super::consts::RESPONSE_TYPE;
 use super::envelope::context;
 use super::handle::SurveyRepo;
-use crate::check::validate_answers;
+use crate::check::{drop_empty, validate_answers};
 use crate::error::{Error, Result};
 use crate::model::{AS2_TYPE, Anonymity, Answer, NamedResponse, Survey, SurveyState};
 use crate::traits::SurveyChange;
@@ -101,6 +101,7 @@ impl SurveyRepo {
         person: &str,
         answers: Vec<Answer>,
     ) -> Result<NamedResponse> {
+        let answers = drop_empty(answers);
         let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         Self::need_open_named(&s)?;

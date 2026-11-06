@@ -54,6 +54,7 @@ impl SurveyRepo {
         outcome: Vec<String>,
         note: &str,
     ) -> Result<Decision> {
+        let _guard = self.lock_for(survey).await;
         let s = self.require(survey).await?;
         let q = s.question(question).ok_or(Error::NotFound {
             what: "question",
@@ -140,7 +141,10 @@ impl SurveyRepo {
     }
 
     async fn retask(&self, id: ObjectId, f: impl FnOnce(&mut Vec<String>)) -> Result<Decision> {
-        let _guard = self.lock_for(id).await;
+        // The survey's lock, so a delete cannot orphan the decision; one lock at a time only.
+        let survey = self.require_decision(id).await?.survey;
+        let _guard = self.lock_for(survey).await;
+        self.require(survey).await?;
         let mut d = self.require_decision(id).await?;
         f(&mut d.tasks);
         self.objects

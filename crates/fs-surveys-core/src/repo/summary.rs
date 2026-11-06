@@ -15,7 +15,7 @@ use crate::summarize::summarize;
 pub(super) fn totals(s: &Survey, rows: &[Row], held_back: u32) -> Result<Summary> {
     let mut questions = vec![];
     for q in &s.questions {
-        let values = values_for(s, rows, q.id);
+        let (values, _) = values_for(s, rows, q.id);
         questions.push(summarize(q, &values, s.is_anonymous(), s.min_group)?);
     }
     let ballots = u32::try_from(rows.len()).unwrap_or(u32::MAX);

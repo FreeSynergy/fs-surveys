@@ -6,6 +6,6 @@ mod answers;
 mod design;
 mod interpret;
 
-pub use answers::validate_answers;
+pub use answers::{drop_empty, validate_answers};
 pub use design::{check_conditions, check_min_group, check_publishable, check_question};
 pub use interpret::{given, holds};

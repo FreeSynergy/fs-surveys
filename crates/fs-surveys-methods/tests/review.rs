@@ -76,3 +76,36 @@ fn errors_name_no_ballot_value() {
         assert!(matches!(e, Error::UnknownChoice | Error::InvalidBallot(_)));
     }
 }
+
+#[test]
+fn contentless_ballots_are_not_ballots_for_any_method() {
+    let ch = ss(&["A", "B"]);
+    let cases = [
+        (Method::Approval, Ballot::Multiple(vec![])),
+        (Method::Borda, rk(&[])),
+        (Method::Schulze, rk(&[])),
+        (Method::InstantRunoff, rk(&[])),
+        (Method::Score, Ballot::Scores(vec![])),
+        (Method::Consent, Ballot::Scores(vec![])),
+        (Method::SystemicConsensing, Ballot::Scores(vec![])),
+    ];
+    for (m, empty) in cases {
+        let t = evaluate(&m, &ch, &vec![empty; 5]).unwrap();
+        assert!(
+            t.winners.is_empty() && !t.note.is_empty(),
+            "{m:?}: {:?}",
+            t.winners
+        );
+    }
+}
+
+#[test]
+fn a_final_tie_in_a_round_is_undecided() {
+    let t = evaluate(
+        &Method::InstantRunoff,
+        &ss(&["A", "B"]),
+        &[rk(&["A"]), rk(&["B"])],
+    )
+    .unwrap();
+    assert!(t.winners.is_empty() && t.note.contains("tied"));
+}

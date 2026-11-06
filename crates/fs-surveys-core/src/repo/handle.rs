@@ -26,6 +26,7 @@ pub struct SurveyRepo {
     pub(super) delivery: Option<Arc<dyn TokenDelivery>>,
     pub(super) feed: Arc<Registry>,
     /// One lock per survey (its box and decisions of it included), from read to save.
+    pub(super) inflight: super::inflight::InFlight,
     pub(crate) locks: Arc<std::sync::Mutex<HashMap<ObjectId, Arc<Mutex<()>>>>>,
 }
 
@@ -49,6 +50,7 @@ impl SurveyRepo {
             delivery: None,
             feed: Arc::new(Registry::default()),
             locks: Arc::default(),
+            inflight: Arc::default(),
         }
     }
 

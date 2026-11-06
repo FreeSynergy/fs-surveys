@@ -27,12 +27,23 @@ pub fn method_for(method: &Method) -> Box<dyn DecisionMethod> {
     }
 }
 
-/// Evaluates `ballots` under `method`.
+/// The ballots that say something. A ballot with no content is not a ballot, whatever the method;
+/// one of a form the method does not accept is kept, so that the method can refuse it.
+fn with_content(strategy: &dyn DecisionMethod, ballots: &[Ballot]) -> Vec<Ballot> {
+    ballots
+        .iter()
+        .filter(|b| !(b.is_empty() && strategy.accepts(b)))
+        .cloned()
+        .collect()
+}
+
+/// Evaluates `ballots` under `method`; ballots with no content are left out.
 ///
 /// # Errors
 /// See [`DecisionMethod::evaluate`].
 pub fn evaluate(method: &Method, choices: &[String], ballots: &[Ballot]) -> Result<Tally> {
-    method_for(method).evaluate(choices, ballots)
+    let strategy = method_for(method);
+    strategy.evaluate(choices, &with_content(&*strategy, ballots))
 }
 
 /// Like [`evaluate`], but `held_back` answers are known to exist and are not in `ballots`.
@@ -48,7 +59,8 @@ pub fn evaluate_with_held_back(
     held_back: usize,
 ) -> Result<Tally> {
     let strategy = method_for(method);
-    let mut tally = strategy.evaluate(choices, ballots)?;
+    let ballots = with_content(&*strategy, ballots);
+    let mut tally = strategy.evaluate(choices, &ballots)?;
     if held_back > 0
         && !tally.winners.is_empty()
         && strategy.held_back_can_change(&tally, ballots.len(), held_back)

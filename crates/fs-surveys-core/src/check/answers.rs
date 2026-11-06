@@ -85,6 +85,15 @@ fn fits(q: &Question, v: &AnswerValue) -> bool {
     )
 }
 
+/// The answers that say something. Blank text and empty lists are unanswered, whatever the
+/// question, so they never count toward a batch or show up in a summary.
+pub fn drop_empty(answers: Vec<Answer>) -> Vec<Answer> {
+    answers
+        .into_iter()
+        .filter(|a| !is_empty(&a.value))
+        .collect()
+}
+
 /// An answer that says nothing: blank text or an empty list.
 fn is_empty(v: &AnswerValue) -> bool {
     match v {

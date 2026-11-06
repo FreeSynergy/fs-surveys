@@ -31,9 +31,12 @@ async fn publish_and_edit_never_bring_a_survey_back_to_draft() {
             r2.edit(id, "S", Anonymity::Named, 5).await.is_ok()
         });
         let now = e.repo.get(id).await.unwrap().unwrap();
-        // Either order is fine; both succeeding means publish came first, so edit must have failed.
-        assert!(!(p && ed), "edit of a published survey went through");
+        // Either order is fine: edit first and both succeed (published as edited), or publish
+        // first and the edit is refused. The survey never goes back to draft.
         assert_eq!(now.state == SurveyState::Open, p);
+        if p && ed {
+            assert_eq!(now.anonymity, Anonymity::Named);
+        }
     }
 }
 

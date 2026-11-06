@@ -7,7 +7,7 @@ use fs_interfaces::Unsupported;
 use fs_store::ObjectId;
 
 use super::handle::SurveyRepo;
-use crate::check::validate_answers;
+use crate::check::{drop_empty, validate_answers};
 use crate::error::{Error, Result};
 use crate::model::{Anonymity, Answer, Credential, Survey, SurveyState};
 use crate::tokens::hash_token;
@@ -27,6 +27,7 @@ impl SurveyRepo {
         // State is read and the ballot written under one lock, so a submit cannot land after
         // a close, or recreate the box of a deleted survey.
         let _guard = self.lock_for(id).await;
+        let answers = drop_empty(answers);
         let s = self.require(id).await?;
         if s.anonymity == Anonymity::Public {
             return Err(
