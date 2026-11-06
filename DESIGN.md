@@ -6,7 +6,22 @@
 
 ## State
 
-Version 0.1.0, being built. The State table is filled in as parts are finished.
+Version 0.1.0. Contract methods are the traits; no capnp server and no GUI.
+
+| Area | State |
+|---|---|
+| Surveys: create, edit, questions, conditions, state machine, classify, delete | done |
+| Named answers: save, resume, submit, replace | done |
+| Anonymous: separate unlogged ballot store, one box per survey, batches, tokens through `TokenDelivery` | done; tokens have no real delivery until fs-messenger plugs in |
+| Results: summary, evaluate, CSV export; `filter` and rows for `named` only | done; DDI `Unsupported` |
+| Ten methods, held-back bound | done |
+| Widening over groups through `GroupLookup` | done, tested with real `fs-groups-core` |
+| Decisions linked to task IRIs | done |
+| `survey.publicLink`, `poll.embed` | `Unsupported`; `publish` refuses a `public` survey |
+| capnp server | not built; thread 3 |
+| Tests | 107, real stores |
+
+Checked by an independent reviewer over three rounds before the tag; two rounds found serious errors, and the last found nothing serious.
 
 ## Decisions (the owner may change them; all provisional)
 
@@ -26,13 +41,13 @@ ids are UUIDv7, which contain the time. An anonymous answer stored as an ordinar
 * **Per question too.** A batch counts for a question only if it has at least `minGroup` answers to that question, or a conditional question would expose one answer through the difference between readings.
 * **Answers a batch rule suppresses count as held back for that question,** or a result could look decided when the suppressed answers would flip it.
 * **Empty answers are no answers:** empty text, lists and score sets are dropped at submit and in evaluation, and do not count toward a batch.
-* **While a survey is open** an anonymous `heldBack` reads 0 and `evaluate` gives no winner, because either would change with each submit and show arrival times. After close, `heldBack` is real.
+* **While a survey is open** `heldBack` in a summary reads 0 and `evaluate` gives no winner, because either would change with each submit and show arrival times. `evaluate` still reports what the per-question rule suppressed, which only changes at a release. After close, `heldBack` is real.
 * **`subscribe` never sees ballots**, because they are in the other store. State changes and named answers only.
-* **Tokens (`anonymousOnce`):** 256 random bits from `getrandom`, sent straight to the person through the `TokenDelivery` port; the caller never sees them. Only `sha256(token)` is kept, in the box, sorted, not linked to a person. The main store keeps the invited people apart. Delivery happens outside the survey lock, so a slow messenger does not stop answers; a person being invited is marked in memory, so two parallel invites send one token. Submitting removes the hash in the same write as the ballot. Spent and unknown tokens get the same error.
+* **Tokens (`anonymousOnce`):** 256 random bits from `getrandom`, sent straight to the person through the `TokenDelivery` port; the caller never sees them. Only `sha256(token)` is kept, in the box, sorted, not linked to a person. The main store keeps the invited people apart. Delivery happens outside the survey lock, so a slow messenger does not stop answers; a person being invited is marked in memory, so two parallel invites send one token. The second caller is told `already`, even if that delivery then fails; inviting again sends a token. A token used in the instant before it is recorded is refused, and works on retry. Submitting removes the hash in the same write as the ballot. Spent and unknown tokens get the same error.
 * **Held-back answers:** `evaluate_with_held_back` gives no winner when they could change the outcome. There is a provable bound for plurality, approval, majority and supermajority; all other methods stay undecided as long as any answer is held back. `heldBack` must be shown.
 * **Anonymous results show:** choice counts, scale counts, means; number and date only as a mean; free text shuffled. No rows and no `filter`.
 
-**Stated limits, to be shown by the interface:** whoever runs the machine can read memory while a ballot or a token passes, can copy the file between two writes and see the difference, and old pages may remain until the database reuses them. Unanimous groups stay recognisable. Two conditional questions asked of nearly the same people can expose someone through the difference between their results; the batch rule cannot prevent that, so such a design needs care. An organiser who closes and reopens after each answer can watch `heldBack` rise; each reopening is on record in the activity log. On `anonymousOpen` the organiser can add own ballots and thereby isolate someone else's in a batch; only `anonymousOnce` limits who can answer, and `public` needs the protection against mass answers. Named answers and the list of invited people stay in the main store's activity log after a delete, until its retention removes them. Up to `minGroup - 1` answers can stay held back, so a vote can stay undecided because of them; the evaluation says how many. Provisional; the owner decides. `anonymousOnce` is therefore not called fully anonymous.
+**Stated limits, to be shown by the interface:** whoever runs the machine can read memory while a ballot or a token passes, can copy the file between two writes and see the difference, and old pages may remain until the database reuses them. Unanimous groups stay recognisable. Two conditional questions asked of nearly the same people can expose someone through the difference between their results; the batch rule cannot prevent that, so such a design needs care. An organiser who closes and reopens after each answer can watch `heldBack` rise; each reopening is on record in the activity log. On `anonymousOpen` the organiser can add own ballots and thereby isolate someone else's in a batch; only `anonymousOnce` limits who can answer, and `public` needs the protection against mass answers. Named answers and the list of invited people stay in the main store's activity log after a delete, until its retention removes them. Answers can stay held back, up to `minGroup - 1` per survey plus those the per-question rule suppresses in each batch, so more in total; a vote can stay undecided because of them, and the evaluation says how many. Provisional; the owner decides. `anonymousOnce` is therefore not called fully anonymous.
 
 ### Locks
 One lock per survey, shared by clones of the repo, from read to save. Two repos or two processes on one store are **not** safe: there is one `SurveyRepo` per store. A compare-and-swap in `fs-store` would lift that.
