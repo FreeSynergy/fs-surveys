@@ -51,7 +51,7 @@ impl SurveyRepo {
         })?;
         check_kind(q)?;
         let counted = self.collect(&survey, stage).await?;
-        let ballots: Vec<Ballot> = c
+        let ballots: Vec<Ballot> = counted
             .rows
             .iter()
             .filter_map(|r| r.answers.iter().find(|a| a.question == question))
