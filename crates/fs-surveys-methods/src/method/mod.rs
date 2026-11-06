@@ -10,6 +10,7 @@ mod read;
 mod runoff;
 mod schulze;
 mod score;
+mod share;
 mod strategy;
 mod supermajority;
 mod systemic;

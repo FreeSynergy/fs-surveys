@@ -17,5 +17,5 @@ mod tally;
 pub use ballot::Ballot;
 pub use error::{Error, Result};
 pub use method::{DecisionMethod, Method};
-pub use registry::{evaluate, method_for};
+pub use registry::{evaluate, evaluate_with_held_back, method_for};
 pub use tally::{OptionResult, Tally};
