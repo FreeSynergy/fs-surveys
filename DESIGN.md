@@ -19,17 +19,16 @@ AS2 JSON with `items` = AS2 `Question`s (`oneOf`/`anyOf`/`closed`) plus the prof
 `fs-store` logs every change with its exact time and full before/after images, sets `updated` itself, and hands the log to the hub;
 ids are UUIDv7, which contain the time. An anonymous answer stored as an ordinary object would carry all of that. So:
 
-* **Anonymous answers live in a separate store, the ballot store.** The host passes a second `Arc<dyn Store>`, which is never connected to the hub. Nothing anonymous goes into the main store.
+* **Anonymous answers live in a separate store, the ballot store.** The host passes a second store, as `Arc<dyn UnloggedObjects>` (fs-store 0.3), which is never connected to the hub. Nothing anonymous goes into the main store.
 * **One box per survey.** The ballot store holds one object per survey with: `pending` ballots, released `batches` (`{stage, ballots}`) and unspent token hashes. A ballot has no person, time or id. Each submit inserts at a random position.
-* **The log is emptied after every write:** `put`, then `mark_synced(id)`, then `clear_history()`. The box's `updated` shows only the last write. A crash between the steps leaves one log entry until the next write.
+* **No log, no time.** Boxes are written with `put_unlogged`: no activity exists at any moment, so a crash leaves nothing. Both envelope times are the Unix epoch. The box id contains only when the box was created.
 * **Results come in batches.** Reads only see released batches. Release happens when the survey closes or widens: if `pending` has at least `minGroup` ballots they become one shuffled batch of the current stage. Smaller rests stay and are reported as `heldBack`. Reading never releases, so comparing two readings, or closing and reopening, shows at least a batch. `minGroup` defaults to 5 and is at least 3 on anonymous surveys.
 * **`subscribe` never sees ballots**, because they are in the other store. State changes and named answers only.
 * **Tokens (`anonymousOnce`):** 256 random bits from `getrandom`, sent straight to the person through the `TokenDelivery` port; the caller never sees them. Only `sha256(token)` is kept, in the box, sorted, not linked to a person. The main store keeps the invited people apart. Submitting removes the hash in the same write as the ballot. Spent and unknown tokens get the same error.
+* **Held-back answers:** `evaluate_with_held_back` gives no winner when they could change the outcome. There is a provable bound for plurality, approval, majority and supermajority; all other methods stay undecided as long as any answer is held back. `heldBack` must be shown.
 * **Anonymous results show:** choice counts, scale counts, means; number and date only as a mean; free text shuffled. No rows and no `filter`.
 
-**Stated limits, to be shown by the interface:** whoever runs the machine can read memory while a ballot or a token passes, can copy the file between two writes, and deleted pages may remain until the database reclaims them. Unanimous groups stay recognisable. Up to `minGroup - 1` answers can stay held back, so a vote can be undecided by them; the evaluation says how many. `anonymousOnce` is therefore not called fully anonymous.
-
-**To report to the store's owner:** a log-free write in `fs-store` would remove the emptying step.
+**Stated limits, to be shown by the interface:** whoever runs the machine can read memory while a ballot or a token passes, can copy the file between two writes and see the difference, and old pages may remain until the database reuses them. Unanimous groups stay recognisable. Up to `minGroup - 1` answers can stay held back, so a vote can stay undecided because of them; the evaluation says how many. Provisional; the owner decides. `anonymousOnce` is therefore not called fully anonymous.
 
 ### Named answers
 One `StoredObject` of store type `SurveyResponse` per person and survey in the main store, `inReplyTo` the survey, index fields `survey`, `person`, `submitted`. `save` keeps a draft; submit sets `submitted`; submitting again replaces while the survey is open.
