@@ -20,6 +20,8 @@ sha2 = "0.10"
 getrandom = "0.3"
 
 [dev-dependencies]
+sha2 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 tokio = { version = "1", features = ["full"] }
 fs-groups-core = { git = "https://github.com/FreeSynergy/fs-groups", tag = "v0.1.1" }
 # fs-groups-core v0.1.1 is built on fs-store v0.2.0; the tests talk to it through ids as text.

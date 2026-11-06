@@ -93,6 +93,13 @@ impl Question {
         self
     }
 
+    /// Builder: use this id (to edit an existing question).
+    #[must_use]
+    pub fn with_id(mut self, id: ObjectId) -> Self {
+        self.id = id;
+        self
+    }
+
     /// Builder: mark as required.
     #[must_use]
     pub fn required(mut self) -> Self {

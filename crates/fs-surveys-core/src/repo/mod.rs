@@ -13,6 +13,7 @@ mod invite;
 mod lifecycle;
 mod named;
 mod provide;
+mod provide_io;
 mod questions;
 mod reading;
 mod submit;
