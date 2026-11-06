@@ -10,7 +10,7 @@ use super::handle::SurveyRepo;
 use super::reading::Row;
 use crate::csv::{Csv, escape, text_cell};
 use crate::error::Result;
-use crate::model::{ALL_STAGES, AnswerValue, Question, Survey};
+use crate::model::{ALL_STAGES, AnswerValue, Question, QuestionKind, Survey};
 
 fn cell(q: &Question, row: &Row) -> String {
     let Some(a) = row.answers.iter().find(|a| a.question == q.id) else {
@@ -54,7 +54,13 @@ fn totals_csv(s: &Survey, summary: &crate::model::Summary) -> Vec<u8> {
             continue;
         }
         for c in &t.counts {
-            out.row(&[name.clone(), escape(&c.choice), c.count.to_string()]);
+            // Scale values are genuine numbers; every other label comes from people.
+            let label = if q.kind == QuestionKind::Scale {
+                escape(&c.choice)
+            } else {
+                text_cell(&c.choice)
+            };
+            out.row(&[name.clone(), label, c.count.to_string()]);
         }
         if let Some(m) = t.mean {
             out.row(&[name, "mean".into(), m.to_string()]);

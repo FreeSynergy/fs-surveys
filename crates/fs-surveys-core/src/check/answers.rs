@@ -85,6 +85,16 @@ fn fits(q: &Question, v: &AnswerValue) -> bool {
     )
 }
 
+/// An answer that says nothing: blank text or an empty list.
+fn is_empty(v: &AnswerValue) -> bool {
+    match v {
+        AnswerValue::Text(t) | AnswerValue::Choice(t) | AnswerValue::Date(t) => t.trim().is_empty(),
+        AnswerValue::Choices(l) | AnswerValue::Ranking(l) => l.is_empty(),
+        AnswerValue::Scores(l) => l.is_empty(),
+        AnswerValue::Number(_) | AnswerValue::Scale(_) => false,
+    }
+}
+
 /// Check `answers`. With `complete` (a submit) required questions must be answered; a saved draft
 /// may be partial. A question whose conditions fail must be unanswered and is not required.
 pub fn validate_answers(survey: &Survey, answers: &[Answer], complete: bool) -> Result<()> {
@@ -108,7 +118,7 @@ pub fn validate_answers(survey: &Survey, answers: &[Answer], complete: bool) -> 
             if answered {
                 return Err(Error::Invalid(format!("{:?} is not asked here", q.text)));
             }
-        } else if complete && q.required && !answered {
+        } else if complete && q.required && g.get(&q.id).is_none_or(|v| is_empty(v)) {
             return Err(Error::Invalid(format!("{:?} is required", q.text)));
         }
     }

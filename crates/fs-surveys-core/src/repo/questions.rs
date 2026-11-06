@@ -17,6 +17,7 @@ impl SurveyRepo {
         id: ObjectId,
         f: impl FnOnce(&mut Vec<Question>) -> Result<()>,
     ) -> Result<Survey> {
+        let _guard = self.lock_for(id).await;
         let mut s = self.require(id).await?;
         Self::need_draft(&s)?;
         f(&mut s.questions)?;

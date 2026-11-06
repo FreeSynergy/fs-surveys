@@ -140,6 +140,7 @@ impl SurveyRepo {
     }
 
     async fn retask(&self, id: ObjectId, f: impl FnOnce(&mut Vec<String>)) -> Result<Decision> {
+        let _guard = self.lock_for(id).await;
         let mut d = self.require_decision(id).await?;
         f(&mut d.tasks);
         self.objects

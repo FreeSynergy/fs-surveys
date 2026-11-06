@@ -3,11 +3,12 @@
 //! Pattern: Repository + Facade + Builder — one small type hides the two stores (main and ballot) and
 //! the envelope rules; ports (groups, delivery) are injected with `with_*`.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, PoisonError};
 
 use fs_store::traits::{ObjectQuery, ObjectRepository, UnloggedObjects};
 use fs_store::{ObjectId, Store};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, OwnedMutexGuard};
 
 use super::backend::StoreAdapter;
 use crate::traits::{GroupLookup, Registry, TokenDelivery};
@@ -24,8 +25,8 @@ pub struct SurveyRepo {
     pub(super) groups: Option<Arc<dyn GroupLookup>>,
     pub(super) delivery: Option<Arc<dyn TokenDelivery>>,
     pub(super) feed: Arc<Registry>,
-    /// Serialises every read-modify-write of a ballot box.
-    pub(crate) lock: Arc<Mutex<()>>,
+    /// One lock per survey (its box and decisions of it included), from read to save.
+    pub(crate) locks: Arc<std::sync::Mutex<HashMap<ObjectId, Arc<Mutex<()>>>>>,
 }
 
 impl SurveyRepo {
@@ -47,7 +48,7 @@ impl SurveyRepo {
             groups: None,
             delivery: None,
             feed: Arc::new(Registry::default()),
-            lock: Arc::new(Mutex::new(())),
+            locks: Arc::default(),
         }
     }
 
@@ -77,6 +78,16 @@ impl SurveyRepo {
     pub fn with_page_size(mut self, n: usize) -> Self {
         self.page_size = n.max(1);
         self
+    }
+
+    /// Take the lock of one object (a survey, or a decision) until the guard is dropped. The
+    /// lock is not reentrant: the public operation takes it, the helpers below it do not.
+    pub(crate) async fn lock_for(&self, id: ObjectId) -> OwnedMutexGuard<()> {
+        let lock = {
+            let mut map = self.locks.lock().unwrap_or_else(PoisonError::into_inner);
+            map.entry(id).or_default().clone()
+        };
+        lock.lock_owned().await
     }
 
     pub(super) fn iri(&self, id: ObjectId) -> String {

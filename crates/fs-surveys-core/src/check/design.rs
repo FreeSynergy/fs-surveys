@@ -81,6 +81,13 @@ pub fn check_conditions(questions: &[Question]) -> Result<()> {
 
 /// A draft may be published: one question at least, two choices for choice questions.
 pub fn check_publishable(s: &Survey) -> Result<()> {
+    if s.anonymity == Anonymity::Public {
+        return Err(fs_interfaces::Unsupported::new(
+            "survey.publicLink",
+            "a public survey could not be answered yet; open links are not built",
+        )
+        .into());
+    }
     if s.questions.is_empty() {
         return Err(Error::Refused(
             "a survey needs at least one question".into(),

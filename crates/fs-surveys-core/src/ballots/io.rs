@@ -36,14 +36,13 @@ impl SurveyRepo {
         }
     }
 
-    /// Change the box under the lock; it is written only if `f` succeeds. The box copies the
+    /// Change the box; the caller holds the survey lock; it is written only if `f` succeeds. The box copies the
     /// sensitive categories of the survey.
     pub(crate) async fn edit_box<T>(
         &self,
         survey: &Survey,
         f: impl FnOnce(&mut BallotBox) -> Result<T>,
     ) -> Result<T> {
-        let _guard = self.lock.lock().await;
         let mut data = self.read_box(survey.id()).await?;
         let out = f(&mut data)?;
         self.ballots
@@ -63,8 +62,8 @@ impl SurveyRepo {
     }
 
     /// Copy new sensitive categories to an existing box.
+    /// Caller holds the survey lock.
     pub(crate) async fn reclassify_box(&self, survey: &Survey) -> Result<()> {
-        let _guard = self.lock.lock().await;
         if let Some(o) = self.ballots.read_unlogged(survey.id()).await? {
             let data: BallotBox = serde_json::from_value(o.content)?;
             let fresh = object(survey.id(), &data, &survey.envelope.sensitive)?;
@@ -73,9 +72,8 @@ impl SurveyRepo {
         Ok(())
     }
 
-    /// Remove the box of a survey.
+    /// Remove the box of a survey. Caller holds the survey lock.
     pub(crate) async fn delete_box(&self, survey: ObjectId) -> Result<()> {
-        let _guard = self.lock.lock().await;
         Ok(self.ballots.delete_unlogged(survey).await?)
     }
 }

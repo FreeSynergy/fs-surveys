@@ -96,6 +96,7 @@ impl SurveyRepo {
         anonymity: Anonymity,
         min_group: u16,
     ) -> Result<Survey> {
+        let _guard = self.lock_for(id).await;
         let mut s = self.require(id).await?;
         Self::need_draft(&s)?;
         check_min_group(anonymity, min_group)?;
@@ -107,6 +108,7 @@ impl SurveyRepo {
 
     /// `survey.classify`: DPV categories. An unencrypted store refuses them; the error is passed on.
     pub async fn classify(&self, id: ObjectId, categories: &[String]) -> Result<Survey> {
+        let _guard = self.lock_for(id).await;
         let mut s = self.require(id).await?;
         s.envelope.sensitive = categories.to_vec();
         let saved = self.save(&s).await?;
@@ -124,9 +126,12 @@ impl SurveyRepo {
         )))
     }
 
-    /// Remove the survey, its named answers, invited people, decisions and its box.
+    /// Remove the survey, its named answers, invited people, decisions and its box. The box goes
+    /// first and the survey last, so a failed delete can be repeated.
     pub async fn delete(&self, id: ObjectId) -> Result<()> {
+        let _guard = self.lock_for(id).await;
         self.require(id).await?;
+        self.delete_box(id).await?;
         for kind in [RESPONSE_TYPE, INVITEE_TYPE, DECISION_TYPE] {
             let q = Query::new()
                 .of_type(kind)
@@ -136,7 +141,6 @@ impl SurveyRepo {
             }
         }
         self.objects.delete(id, &self.actor).await?;
-        self.delete_box(id).await?;
         self.feed.notify(&SurveyChange::Deleted(id));
         Ok(())
     }

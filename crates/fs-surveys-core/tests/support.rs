@@ -64,7 +64,13 @@ async fn every_capability_of_the_contract_is_listed() {
 #[tokio::test]
 async fn public_surveys_answer_unsupported() {
     let e = env().await;
-    let (s, q) = open_survey(&e, Anonymity::Public).await;
+    let s = e.repo.create("Open", Anonymity::Public, &[]).await.unwrap();
+    let (_, q) = e.repo.add_question(s.id(), pick()).await.unwrap();
+    let r = e.repo.publish(s.id()).await;
+    assert!(
+        matches!(&r, Err(Error::Unsupported(u)) if u.capability() == "survey.publicLink"),
+        "{r:?}"
+    );
     for r in [
         e.repo
             .submit(s.id(), Credential::Proof(vec![1]), choice(q, "a"))

@@ -139,6 +139,17 @@ async fn held_back_answers_that_could_tip_the_result_leave_it_undecided() {
     );
     e.repo.reopen(s.id()).await.unwrap();
     submit_open(&e, &s, q, "b", 2).await;
+    let open = e
+        .repo
+        .evaluate(s.id(), q, Method::Plurality, ALL_STAGES)
+        .await
+        .unwrap();
+    assert!(
+        open.winners.is_empty() && open.held_back == 0,
+        "while open: no winner, no number"
+    );
+    assert!(open.note.contains("still open"), "{}", open.note);
+    e.repo.close(s.id()).await.unwrap();
     let ev = e
         .repo
         .evaluate(s.id(), q, Method::Plurality, ALL_STAGES)

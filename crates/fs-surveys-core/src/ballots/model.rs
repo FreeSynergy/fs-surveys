@@ -60,12 +60,13 @@ impl BallotBox {
         Ok(true)
     }
 
-    /// Released ballots of `stage` (`0xFFFF` = all).
-    pub fn released(&self, stage: u16) -> Vec<&Ballot> {
+    /// Released ballots of `stage` (`0xFFFF` = all), each with the number of its batch.
+    pub fn released(&self, stage: u16) -> Vec<(usize, &Ballot)> {
         self.batches
             .iter()
-            .filter(|b| stage == crate::model::ALL_STAGES || b.stage == stage)
-            .flat_map(|b| b.ballots.iter())
+            .enumerate()
+            .filter(|(_, b)| stage == crate::model::ALL_STAGES || b.stage == stage)
+            .flat_map(|(i, b)| b.ballots.iter().map(move |x| (i, x)))
             .collect()
     }
 

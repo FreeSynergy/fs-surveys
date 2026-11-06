@@ -14,16 +14,18 @@ use crate::traits::SurveyChange;
 
 impl SurveyRepo {
     async fn step(&self, id: ObjectId, step: Step) -> Result<Survey> {
+        let _guard = self.lock_for(id).await;
         let mut s = self.require(id).await?;
         let next = transition(s.state, step)?;
         if step == Step::Publish {
             check_publishable(&s)?;
         }
+        if step == Step::Close {
+            // Release first, save after: a failed save is retried and releases again by the same rule.
+            self.release_box(&s).await?;
+        }
         s.state = next;
         let saved = self.save(&s).await?;
-        if step == Step::Close {
-            self.release_box(&saved).await?;
-        }
         self.feed.notify(&SurveyChange::State(id, next));
         Ok(saved)
     }

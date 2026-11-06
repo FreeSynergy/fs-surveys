@@ -2,17 +2,19 @@
 //!
 //! Pattern: Strategy by anonymity level — reading never releases anything and never writes.
 
-use fs_store::Query;
+use fs_store::{ObjectId, Query};
 
 use super::consts::RESPONSE_TYPE;
 use super::handle::SurveyRepo;
 use crate::error::Result;
-use crate::model::{ALL_STAGES, Answer, Survey};
+use crate::model::{ALL_STAGES, Answer, AnswerValue, Survey, SurveyState};
 
 /// One respondent's answers; the person is known on `named` only.
 pub(super) struct Row {
     pub person: Option<String>,
     pub answers: Vec<Answer>,
+    /// The released batch it came in; named answers are all batch 0.
+    pub batch: usize,
 }
 
 /// The answers that count, and how many are held back.
@@ -29,14 +31,22 @@ impl SurveyRepo {
             let rows = b
                 .released(stage)
                 .into_iter()
-                .map(|answers| Row {
+                .map(|(batch, answers)| Row {
                     person: None,
                     answers: answers.clone(),
+                    batch,
                 })
                 .collect();
+            // While the survey is open the number would tick with every submit and show when
+            // people answered; it is real once the survey is closed.
+            let held = if s.state == SurveyState::Open {
+                0
+            } else {
+                b.held_back()
+            };
             return Ok(Collected {
                 rows,
-                held_back: u32::try_from(b.held_back()).unwrap_or(u32::MAX),
+                held_back: u32::try_from(held).unwrap_or(u32::MAX),
             });
         }
         let q = Query::new()
@@ -60,9 +70,35 @@ impl SurveyRepo {
                 .map(String::from);
             let answers =
                 serde_json::from_value(o.content.get("fs:answers").cloned().unwrap_or_default())?;
-            rows.push(Row { person, answers });
+            rows.push(Row {
+                person,
+                answers,
+                batch: 0,
+            });
         }
         rows.sort_by(|a, b| a.person.cmp(&b.person));
         Ok(Collected { rows, held_back: 0 })
     }
+}
+
+/// The values given to `question`. On an anonymous survey a batch counts only if it holds at
+/// least `minGroup` answers to this question, or a conditional question would show a single
+/// answer through the difference between two readings.
+pub(super) fn values_for<'a>(
+    s: &Survey,
+    rows: &'a [Row],
+    question: ObjectId,
+) -> Vec<&'a AnswerValue> {
+    let mut by_batch: std::collections::BTreeMap<usize, Vec<&AnswerValue>> = Default::default();
+    for r in rows {
+        if let Some(a) = r.answers.iter().find(|a| a.question == question) {
+            by_batch.entry(r.batch).or_default().push(&a.value);
+        }
+    }
+    let enough = |n: usize| !s.is_anonymous() || n >= usize::from(s.min_group);
+    by_batch
+        .into_values()
+        .filter(|v| enough(v.len()))
+        .flatten()
+        .collect()
 }

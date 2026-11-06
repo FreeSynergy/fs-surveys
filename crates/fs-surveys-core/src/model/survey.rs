@@ -65,7 +65,7 @@ impl Survey {
         let mut v = json!({
             "@context": ["https://www.w3.org/ns/activitystreams", {"fs": NS}],
             "type": "OrderedCollection", "name": self.envelope.name,
-            "totalItems": items.len(), "items": items,
+            "totalItems": items.len(), "orderedItems": items,
             "fs:state": self.state, "fs:anonymity": self.anonymity,
             "fs:scope": self.scope, "fs:stage": self.stage, "fs:minGroup": self.min_group,
         });
@@ -84,7 +84,7 @@ impl Survey {
     /// Read a survey back from its stored object.
     pub fn from_object(o: &StoredObject) -> Option<Self> {
         let c = &o.content;
-        let items = c.get("items")?.as_array()?;
+        let items = c.get("orderedItems")?.as_array()?;
         let questions = items
             .iter()
             .map(|i| serde_json::from_value(i.get("fs:question")?.clone()).ok())

@@ -86,6 +86,7 @@ impl SurveyRepo {
         people: &[String],
         groups: &[ObjectId],
     ) -> Result<InviteReport> {
+        let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         if s.anonymity == Anonymity::Public {
             return Err(

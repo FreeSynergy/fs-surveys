@@ -6,24 +6,16 @@
 use fs_store::ObjectId;
 
 use super::handle::SurveyRepo;
-use super::reading::Row;
+use super::reading::{Row, values_for};
 use crate::check::{given, holds};
 use crate::error::{Error, Result};
-use crate::model::{AnswerValue, Condition, ConditionOp, Summary, Survey};
+use crate::model::{Condition, ConditionOp, Summary, Survey};
 use crate::summarize::summarize;
 
 pub(super) fn totals(s: &Survey, rows: &[Row], held_back: u32) -> Result<Summary> {
     let mut questions = vec![];
     for q in &s.questions {
-        let values: Vec<&AnswerValue> = rows
-            .iter()
-            .filter_map(|r| {
-                r.answers
-                    .iter()
-                    .find(|a| a.question == q.id)
-                    .map(|a| &a.value)
-            })
-            .collect();
+        let values = values_for(s, rows, q.id);
         questions.push(summarize(q, &values, s.is_anonymous(), s.min_group)?);
     }
     let ballots = u32::try_from(rows.len()).unwrap_or(u32::MAX);

@@ -7,7 +7,7 @@ const FORMULA: [char; 6] = ['=', '+', '-', '@', '\t', '\r'];
 
 /// Quote a cell if it needs it (RFC 4180).
 pub fn escape(cell: &str) -> String {
-    if cell.contains([',', '"', '\n', '\r']) {
+    if cell.contains([',', ';', '"', '\n', '\r', '\t']) {
         format!("\"{}\"", cell.replace('"', "\"\""))
     } else {
         cell.to_string()

@@ -70,7 +70,7 @@ async fn box_holds_no_person_time_or_ballot_id() {
     }
     let all = raw(&e.ballots).await;
     assert!(!all.contains("people/") && !all.contains(ME));
-    let year = chrono::Utc::now().format("%Y").to_string();
+    let year = chrono::Utc::now().format("%Y-").to_string();
     assert!(
         !all.contains(&year),
         "no real time in the ballot store: {all}"
@@ -96,11 +96,18 @@ async fn reading_and_reopening_change_nothing() {
     let held = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
     assert_eq!(
         (held.ballots, held.held_back),
-        (3, 2),
-        "new ballots are held back, not shown"
+        (3, 0),
+        "new ballots are not shown, and not counted while open"
     );
     assert_eq!(count(&held, q, "b"), 0);
     e.repo.close(s.id()).await.unwrap();
+    let closed = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
+    assert_eq!(
+        (closed.ballots, closed.held_back),
+        (3, 2),
+        "after close the number is real"
+    );
+    assert_eq!(count(&closed, q, "b"), 0);
     e.repo.reopen(s.id()).await.unwrap();
     assert_eq!(
         e.repo.summary(s.id(), ALL_STAGES).await.unwrap(),

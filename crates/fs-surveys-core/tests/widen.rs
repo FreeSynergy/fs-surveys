@@ -75,8 +75,8 @@ async fn a_small_rest_waits_for_the_next_release() {
     let sum = e.repo.summary(s.id(), 0).await.unwrap();
     assert_eq!(
         (sum.ballots, sum.held_back),
-        (0, 2),
-        "2 < minGroup: nothing released at stage 0"
+        (0, 0),
+        "2 < minGroup: nothing released at stage 0, and the open survey shows no held-back number"
     );
     submit_open(&e, &s, q, "a", 1).await;
     e.repo.close(s.id()).await.unwrap();

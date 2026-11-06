@@ -13,6 +13,7 @@ use crate::model::{Survey, SurveyState};
 impl SurveyRepo {
     /// `survey.widen`: `parent` must be an ancestor of a group in `scope`.
     pub async fn widen(&self, id: ObjectId, parent: ObjectId) -> Result<Survey> {
+        let _guard = self.lock_for(id).await;
         let mut s = self.require(id).await?;
         let lookup = self
             .groups

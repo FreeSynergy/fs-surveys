@@ -7,8 +7,9 @@ use fs_store::ObjectId;
 use fs_surveys_methods::{Ballot, Method, evaluate_with_held_back};
 
 use super::handle::SurveyRepo;
+use super::reading::values_for;
 use crate::error::{Error, Result};
-use crate::model::{AnswerValue, Evaluation, Question, QuestionKind};
+use crate::model::{AnswerValue, Evaluation, Question, QuestionKind, SurveyState};
 
 fn ballot_of(kind: QuestionKind, v: &AnswerValue) -> Option<Ballot> {
     Some(match (kind, v) {
@@ -35,6 +36,22 @@ fn check_kind(q: &Question) -> Result<()> {
     }
 }
 
+/// Consent counts 0 or 1 and systemic consensing 0 to 10; a question with another range is
+/// refused here, not after the ballots were read.
+fn check_range(q: &Question, method: Method) -> Result<()> {
+    let (lo, hi) = match method {
+        Method::Consent => (0, 1),
+        Method::SystemicConsensing => (0, 10),
+        _ => return Ok(()),
+    };
+    if q.kind == QuestionKind::OptionScores && (q.min < lo || q.max > hi) {
+        return Err(Error::Invalid(format!(
+            "this method needs scores from {lo} to {hi}"
+        )));
+    }
+    Ok(())
+}
+
 impl SurveyRepo {
     /// `survey.method`: the same ballots can be evaluated by every method whose ballot form fits.
     pub async fn evaluate(
@@ -50,12 +67,11 @@ impl SurveyRepo {
             id: question,
         })?;
         check_kind(q)?;
+        check_range(q, method)?;
         let counted = self.collect(&survey, stage).await?;
-        let ballots: Vec<Ballot> = counted
-            .rows
-            .iter()
-            .filter_map(|r| r.answers.iter().find(|a| a.question == question))
-            .filter_map(|a| ballot_of(q.kind, &a.value))
+        let ballots: Vec<Ballot> = values_for(&survey, &counted.rows, question)
+            .into_iter()
+            .filter_map(|v| ballot_of(q.kind, v))
             .collect();
         let mut out = Evaluation {
             method,
@@ -76,6 +92,12 @@ impl SurveyRepo {
             counted.held_back as usize,
         )?;
         (out.winners, out.options, out.note) = (tally.winners, tally.options, tally.note);
+        if survey.is_anonymous() && survey.state == SurveyState::Open {
+            // A winner (or its absence) would change with each submit and show arrival times.
+            out.winners.clear();
+            "the survey is still open; a result is given after it is closed"
+                .clone_into(&mut out.note);
+        }
         Ok(out)
     }
 }

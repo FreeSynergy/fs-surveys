@@ -24,6 +24,9 @@ impl SurveyRepo {
         credential: Credential,
         answers: Vec<Answer>,
     ) -> Result<()> {
+        // State is read and the ballot written under one lock, so a submit cannot land after
+        // a close, or recreate the box of a deleted survey.
+        let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         if s.anonymity == Anonymity::Public {
             return Err(

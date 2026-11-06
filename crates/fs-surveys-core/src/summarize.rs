@@ -20,6 +20,8 @@ fn choice_counts(q: &Question, values: &[&AnswerValue]) -> Vec<ChoiceCount> {
             AnswerValue::Choice(c) => vec![c],
             AnswerValue::Choices(l) => l.iter().collect(),
             AnswerValue::Ranking(l) => l.first().into_iter().collect(),
+            // Number of answers that scored the choice, not the points.
+            AnswerValue::Scores(l) => l.iter().map(|s| &s.choice).collect(),
             _ => vec![],
         };
         for c in picked {

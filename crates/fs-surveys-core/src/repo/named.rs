@@ -101,6 +101,7 @@ impl SurveyRepo {
         person: &str,
         answers: Vec<Answer>,
     ) -> Result<NamedResponse> {
+        let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         Self::need_open_named(&s)?;
         if person.is_empty() {
