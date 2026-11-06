@@ -1,7 +1,8 @@
 //! Instant runoff: count first remaining preferences, eliminate the lowest, repeat.
 //!
 //! Exhausted ballots (no remaining choice ranked) leave the count. A winner needs more than half
-//! of the non-exhausted ballots. If every remaining choice is lowest, it is a tie and all are
+//! of the non-exhausted ballots. Several tied for lowest go out together only if their votes
+//! together are below the next count, otherwise nothing is decided. If every remaining choice is lowest, it is a tie and all are
 //! winners. Value is the votes in the round a choice left or won; ranks follow the round of
 //! elimination (later is better).
 //!
@@ -9,7 +10,7 @@
 
 use super::read::{lists, need_choices};
 use crate::method::DecisionMethod;
-use crate::rank::{no_ballots, options, to_f64, undecided};
+use crate::rank::{count, no_ballots, options, to_f64, undecided};
 use crate::{Ballot, Result, Tally};
 
 /// Strategy for [`Method::InstantRunoff`](crate::Method::InstantRunoff).
@@ -88,6 +89,16 @@ impl DecisionMethod for InstantRunoff {
                     options: options(choices, &key, &value),
                     note,
                 });
+            }
+            // Several tied for last go out together only if all their votes together are still
+            // below the next count; otherwise the order of elimination would decide.
+            let next = left.iter().map(|&i| votes[i]).filter(|&v| v > lowest).min();
+            if out.len() > 1 && next.is_some_and(|n| lowest * count(out.len()) >= n) {
+                let note = format!(
+                    "{} choices are tied for last place and together have at least as many votes as the next one, so the order of elimination would decide; nothing is decided.",
+                    out.len()
+                );
+                return Ok(undecided(choices, &key, &value, &note));
             }
             for i in out {
                 alive[i] = false;

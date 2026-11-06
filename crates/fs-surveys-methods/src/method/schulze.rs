@@ -75,6 +75,16 @@ impl DecisionMethod for Schulze {
             .map(|i| choices[i].clone())
             .collect();
         let values: Vec<f64> = beaten.iter().map(|&b| to_f64(b)).collect();
+        // Winners always rank 1; everyone else ranks below them by opponents beaten.
+        let keys: Vec<i64> = (0..n)
+            .map(|i| {
+                if winners.contains(&choices[i]) {
+                    count(n)
+                } else {
+                    beaten[i]
+                }
+            })
+            .collect();
         let note = if winners.len() > 1 {
             "Several choices are undefeated and tied; all of them are listed as winners."
         } else {
@@ -82,7 +92,7 @@ impl DecisionMethod for Schulze {
         };
         Ok(Tally {
             winners,
-            options: options(choices, &beaten, &values),
+            options: options(choices, &keys, &values),
             note: note.into(),
         })
     }

@@ -9,7 +9,7 @@ fn index(choices: &[String], id: &str) -> Result<usize> {
     choices
         .iter()
         .position(|c| c == id)
-        .ok_or_else(|| Error::UnknownChoice(id.to_owned()))
+        .ok_or_else(|| Error::UnknownChoice)
 }
 
 /// Positions of `ids`; unknown ids and duplicates are errors.
@@ -19,7 +19,7 @@ fn resolve<'a>(choices: &[String], ids: impl Iterator<Item = &'a String>) -> Res
     for id in ids {
         let i = index(choices, id)?;
         if std::mem::replace(&mut seen[i], true) {
-            return Err(Error::InvalidBallot(format!("choice {id} appears twice")));
+            return Err(Error::InvalidBallot("a choice appears twice".into()));
         }
         out.push(i);
     }
@@ -77,9 +77,9 @@ pub(crate) fn scores(
             };
             let idx = resolve(choices, pairs.iter().map(|(id, _)| id))?;
             if let Some((lo, hi)) = range {
-                if let Some((id, s)) = pairs.iter().find(|(_, s)| *s < lo || *s > hi) {
+                if pairs.iter().any(|(_, s)| *s < lo || *s > hi) {
                     return Err(Error::InvalidBallot(format!(
-                        "score {s} for {id} is outside {lo}..={hi}"
+                        "a score is outside {lo}..={hi}"
                     )));
                 }
             }

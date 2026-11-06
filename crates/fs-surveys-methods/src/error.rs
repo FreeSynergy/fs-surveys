@@ -14,8 +14,8 @@ pub enum Error {
         ballot: String,
     },
     /// A ballot names a choice id that is not among the choices.
-    #[error("unknown choice: {0}")]
-    UnknownChoice(String),
+    #[error("a ballot names a choice that is not among the choices")]
+    UnknownChoice,
     /// The supermajority threshold is outside 51..=100.
     #[error("invalid threshold {0}: must be 51..=100")]
     InvalidThreshold(u8),

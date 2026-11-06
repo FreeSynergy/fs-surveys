@@ -38,9 +38,9 @@ fn final_tie_lists_all_remaining() {
 
 #[test]
 fn several_lowest_leave_together() {
-    // R1: A3 B1 C1 D1 (6 active, need 4). B, C, D all lowest; A remains, so all three go.
-    // R2: A alone with 3 of 3 active: wins.
-    let mut b = rankings(3, &["A"]);
+    // R1: A4 B1 C1 D1 (7 active). B, C, D all lowest, together 3 < 4, so all three go.
+    // R2: A alone with 4 of 4 active: wins.
+    let mut b = rankings(4, &["A"]);
     b.extend([ranking(&["B"]), ranking(&["C"]), ranking(&["D"])]);
     let t = evaluate(&Method::InstantRunoff, &ids(&["A", "B", "C", "D"]), &b).unwrap();
     assert_eq!(winners(&t), ["A"]);

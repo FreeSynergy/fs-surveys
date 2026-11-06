@@ -55,6 +55,14 @@ pub(crate) fn from_totals(choices: &[String], totals: &[i64], higher_is_better: 
         .map(|&t| if higher_is_better { t } else { -t })
         .collect();
     let values: Vec<f64> = totals.iter().map(|&t| to_f64(t)).collect();
+    if higher_is_better && totals.iter().all(|&t| t == 0) {
+        return undecided(
+            choices,
+            &keys,
+            &values,
+            "No choice received any support, so nothing is decided.",
+        );
+    }
     let winners: Vec<String> = top(&keys).into_iter().map(|i| choices[i].clone()).collect();
     let note = if winners.len() > 1 {
         "Several choices are tied for the best result; all of them are listed as winners.".into()

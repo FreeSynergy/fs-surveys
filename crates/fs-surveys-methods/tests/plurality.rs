@@ -92,9 +92,9 @@ fn wrong_ballot_form_is_refused() {
 #[test]
 fn unknown_choice_is_refused() {
     let r = evaluate(&Method::Plurality, &ids(&["a"]), &[single("zz")]);
-    assert_eq!(r, Err(Error::UnknownChoice("zz".into())));
+    assert_eq!(r, Err(Error::UnknownChoice));
     let r = evaluate(&Method::Schulze, &ids(&["a"]), &[ranking(&["a", "q"])]);
-    assert_eq!(r, Err(Error::UnknownChoice("q".into())));
+    assert_eq!(r, Err(Error::UnknownChoice));
 }
 
 #[test]
