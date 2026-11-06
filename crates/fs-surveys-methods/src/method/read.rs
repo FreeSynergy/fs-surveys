@@ -9,7 +9,7 @@ fn index(choices: &[String], id: &str) -> Result<usize> {
     choices
         .iter()
         .position(|c| c == id)
-        .ok_or_else(|| Error::UnknownChoice)
+        .ok_or(Error::UnknownChoice)
 }
 
 /// Positions of `ids`; unknown ids and duplicates are errors.

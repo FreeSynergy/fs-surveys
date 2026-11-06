@@ -89,7 +89,8 @@ pub(super) fn values_for<'a>(
     rows: &'a [Row],
     question: ObjectId,
 ) -> Vec<&'a AnswerValue> {
-    let mut by_batch: std::collections::BTreeMap<usize, Vec<&AnswerValue>> = Default::default();
+    let mut by_batch: std::collections::BTreeMap<usize, Vec<&AnswerValue>> =
+        std::collections::BTreeMap::default();
     for r in rows {
         if let Some(a) = r.answers.iter().find(|a| a.question == question) {
             by_batch.entry(r.batch).or_default().push(&a.value);
