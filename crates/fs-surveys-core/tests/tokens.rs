@@ -49,14 +49,11 @@ async fn no_token_is_in_any_store_report_or_return_value() {
     let t = e.delivery.token_of(&person("ada"));
     assert_eq!(t.len(), 64);
     assert!(!format!("{report:?}").contains(&t));
-    for store in [&e.main, &e.ballots] {
-        assert!(
-            !raw(store).await.contains(&t),
-            "the token itself is kept nowhere"
-        );
+    for kept in [raw(&e.main).await, raw_box(&e, &s).await] {
+        assert!(!kept.contains(&t), "the token itself is kept nowhere");
     }
     assert!(
-        raw(&e.ballots).await.contains(&fs_hash(&t)),
+        raw_box(&e, &s).await.contains(&fs_hash(&t)),
         "only its hash is kept"
     );
     e.repo
@@ -64,7 +61,7 @@ async fn no_token_is_in_any_store_report_or_return_value() {
         .await
         .unwrap();
     assert!(
-        !raw(&e.ballots).await.contains(&fs_hash(&t)),
+        !raw_box(&e, &s).await.contains(&fs_hash(&t)),
         "spending removes the hash"
     );
     assert!(!format!("{:?}", Credential::Token(t.clone())).contains(&t));
@@ -79,7 +76,7 @@ async fn no_token_is_in_any_store_report_or_return_value() {
         "invited people are kept in the main store"
     );
     assert!(
-        !raw(&e.ballots).await.contains("people/ada"),
+        !raw_box(&e, &s).await.contains("people/ada"),
         "...and not in the box"
     );
 }

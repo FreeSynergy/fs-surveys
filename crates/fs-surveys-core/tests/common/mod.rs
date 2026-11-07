@@ -174,6 +174,20 @@ pub async fn raw(store: &TursoStore) -> String {
     )
 }
 
+/// The same for the ballot store: its objects are unlogged, so they are read by id (the box of `s`).
+pub async fn raw_box(e: &Env, s: &Survey) -> String {
+    let log = e
+        .ballots
+        .activities(&ActivityFilter::default())
+        .await
+        .unwrap();
+    format!(
+        "{}\n{}",
+        serde_json::to_string(&box_json(e, s).await).unwrap(),
+        serde_json::to_string(&log).unwrap()
+    )
+}
+
 pub async fn log_len(store: &TursoStore) -> usize {
     store
         .activities(&ActivityFilter::default())
