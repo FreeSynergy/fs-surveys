@@ -78,7 +78,7 @@ async fn filter_and_rows_are_refused_and_numbers_are_hidden() {
             question: n,
             value: fs_surveys_core::AnswerValue::Number(v),
         });
-        e.repo.submit(s.id(), Credential::None, ans).await.unwrap();
+        e.repo.submit(s.id(), human(), ans).await.unwrap();
     }
     e.repo.close(s.id()).await.unwrap();
     let err = e.repo.filter(s.id(), q, "a", ALL_STAGES).await.unwrap_err();

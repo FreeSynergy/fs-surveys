@@ -9,9 +9,9 @@ use serde_json::json;
 use super::consts::RESPONSE_TYPE;
 use super::envelope::context;
 use super::handle::SurveyRepo;
-use crate::check::{drop_empty, validate_answers};
+use crate::check::{admits, drop_empty, validate_answers};
 use crate::error::{Error, Result};
-use crate::model::{AS2_TYPE, Anonymity, Answer, NamedResponse, Survey, SurveyState};
+use crate::model::{AS2_TYPE, Anonymity, Answer, Class, NamedResponse, Survey, SurveyState};
 use crate::traits::SurveyChange;
 
 fn read(o: &StoredObject) -> Option<NamedResponse> {
@@ -74,6 +74,7 @@ impl SurveyRepo {
         person: &str,
         answers: Vec<Answer>,
         submitted: bool,
+        class: Class,
     ) -> Result<NamedResponse> {
         let mut env = match self.response_object(s.id(), person).await? {
             Some(o) => o.envelope,
@@ -84,12 +85,14 @@ impl SurveyRepo {
         let content = json!({
             "@context": context(), "type": RESPONSE_TYPE, "inReplyTo": env.in_reply_to,
             "fs:person": person, "fs:submitted": submitted, "fs:answers": answers,
+            "fs:ai": class.is_ai(),
         });
         let o = StoredObject::new(env, AS2_TYPE, content)
             .with_index("survey", s.id().to_string())
             .with_index("person", person)
             .with_index("submitted", submitted.to_string())
-            .with_index("stage", s.stage.to_string());
+            .with_index("stage", s.stage.to_string())
+            .with_index("ai", class.is_ai().to_string());
         self.objects.put(o, &self.actor).await?;
         let stored = self
             .response_object(s.id(), person)
@@ -107,9 +110,11 @@ impl SurveyRepo {
         answers: Vec<Answer>,
     ) -> Result<NamedResponse> {
         let answers = drop_empty(answers);
+        let class = self.class_for(Some(person)).await?;
         let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         Self::need_open_named(&s)?;
+        admits(&s, class)?;
         if person.is_empty() {
             return Err(Error::Invalid("a named answer needs a person".into()));
         }
@@ -119,7 +124,7 @@ impl SurveyRepo {
             ));
         }
         validate_answers(&s, &answers, false)?;
-        self.put_response(&s, person, answers, false).await
+        self.put_response(&s, person, answers, false, class).await
     }
 
     pub(super) async fn submit_named(
@@ -127,14 +132,21 @@ impl SurveyRepo {
         s: &Survey,
         person: &str,
         answers: Vec<Answer>,
+        class: Class,
     ) -> Result<()> {
         if person.is_empty() {
             return Err(Error::Invalid("a named answer needs a person".into()));
         }
+        admits(s, class)?;
         validate_answers(s, &answers, true)?;
-        let r = self.put_response(s, person, answers, true).await?;
-        self.feed
-            .notify(&SurveyChange::Answered(s.id(), r.envelope.id));
+        let r = self.put_response(s, person, answers, true, class).await?;
+        let (survey, response) = (s.id(), r.envelope.id);
+        // An AI answer is its own event, so a listener that counts people does not count it.
+        self.feed.notify(&if class.is_ai() {
+            SurveyChange::AiAnswered(survey, response)
+        } else {
+            SurveyChange::Answered(survey, response)
+        });
         Ok(())
     }
 }

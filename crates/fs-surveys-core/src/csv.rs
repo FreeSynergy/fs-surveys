@@ -25,17 +25,39 @@ pub fn text_cell(cell: &str) -> String {
 
 /// A CSV document under construction.
 #[derive(Default)]
-pub struct Csv(String);
+pub struct Csv {
+    text: String,
+    /// A first column on every row: `participants` in the header, this label below.
+    tag: Option<&'static str>,
+}
 
 impl Csv {
+    /// A document whose rows all begin with the participant class, so a row cannot be mistaken for
+    /// one of the other class when files are joined.
+    pub fn tagged(tag: &'static str) -> Self {
+        Self {
+            text: String::new(),
+            tag: Some(tag),
+        }
+    }
+
     /// Add one row of ready (already escaped) cells.
     pub fn row(&mut self, cells: &[String]) {
-        self.0.push_str(&cells.join(","));
-        self.0.push_str("\r\n");
+        if let Some(tag) = self.tag {
+            let first = if self.text.is_empty() {
+                "participants"
+            } else {
+                tag
+            };
+            self.text.push_str(first);
+            self.text.push(',');
+        }
+        self.text.push_str(&cells.join(","));
+        self.text.push_str("\r\n");
     }
 
     /// The document as UTF-8 bytes.
     pub fn finish(self) -> Vec<u8> {
-        self.0.into_bytes()
+        self.text.into_bytes()
     }
 }

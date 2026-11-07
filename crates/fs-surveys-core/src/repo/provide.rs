@@ -37,6 +37,18 @@ impl Designer for SurveyRepo {
     async fn create(&self, name: &str, anonymity: Anonymity, scope: &[ObjectId]) -> Result<Survey> {
         SurveyRepo::create(self, name, anonymity, scope).await
     }
+    async fn create_by(
+        &self,
+        name: &str,
+        anonymity: Anonymity,
+        scope: &[ObjectId],
+        creator: &str,
+    ) -> Result<Survey> {
+        self.make_survey(name, anonymity, scope, creator).await
+    }
+    async fn set_ai_allowed(&self, id: ObjectId, by: &str, allowed: bool) -> Result<Survey> {
+        self.change_ai_permission(id, by, allowed).await
+    }
     async fn edit(
         &self,
         id: ObjectId,

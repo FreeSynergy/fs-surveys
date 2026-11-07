@@ -57,8 +57,7 @@ impl SurveyRepo {
             return Ok(());
         }
         let (stage, min) = (survey.stage, survey.min_group);
-        self.edit_box(survey, |b| b.release(stage, min).map(|_| ()))
-            .await
+        self.edit_box(survey, |b| b.release(stage, min)).await
     }
 
     /// Copy new sensitive categories to an existing box.

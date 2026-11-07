@@ -5,8 +5,8 @@ mod common;
 use common::*;
 use fs_store::{ObjectId, Query, Store};
 use fs_surveys_core::{
-    ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Credential, Error, Method,
-    Question, QuestionKind as K,
+    ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Error, Method, Question,
+    QuestionKind as K,
 };
 
 fn pair(a: ObjectId, b: ObjectId, first: &str, second: &str) -> Vec<Answer> {
@@ -41,7 +41,7 @@ async fn suppressed_answers_count_as_held_back_in_evaluate() {
     e.repo.publish(s.id()).await.unwrap();
     for second in ["x", "x", "x", "y", "y"] {
         e.repo
-            .submit(s.id(), Credential::None, pair(a, b, "a", second))
+            .submit(s.id(), human(), pair(a, b, "a", second))
             .await
             .unwrap();
     }
@@ -49,12 +49,12 @@ async fn suppressed_answers_count_as_held_back_in_evaluate() {
     e.repo.reopen(s.id()).await.unwrap();
     for _ in 0..4 {
         e.repo
-            .submit(s.id(), Credential::None, pair(a, b, "a", "y"))
+            .submit(s.id(), human(), pair(a, b, "a", "y"))
             .await
             .unwrap();
     }
     e.repo
-        .submit(s.id(), Credential::None, choice(a, "b"))
+        .submit(s.id(), human(), choice(a, "b"))
         .await
         .unwrap();
     e.repo.close(s.id()).await.unwrap();
@@ -105,7 +105,7 @@ async fn empty_answers_are_dropped_and_never_count() {
     };
     for v in ["", "  ", "", "", "secret"] {
         e.repo
-            .submit(s.id(), Credential::None, vec![text(v), none.clone()])
+            .submit(s.id(), human(), vec![text(v), none.clone()])
             .await
             .unwrap();
     }

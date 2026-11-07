@@ -4,7 +4,7 @@ mod common;
 
 use common::*;
 use fs_store::traits::UnloggedObjects;
-use fs_surveys_core::{Anonymity, Credential, Error};
+use fs_surveys_core::{Anonymity, Error};
 
 #[tokio::test]
 async fn delete_removes_the_box_first_and_can_be_repeated() {
@@ -14,10 +14,7 @@ async fn delete_removes_the_box_first_and_can_be_repeated() {
     assert!(e.ballots.read_unlogged(s.id()).await.unwrap().is_some());
     e.repo.delete(s.id()).await.unwrap();
     assert!(e.ballots.read_unlogged(s.id()).await.unwrap().is_none());
-    let late = e
-        .repo
-        .submit(s.id(), Credential::None, choice(q, "a"))
-        .await;
+    let late = e.repo.submit(s.id(), human(), choice(q, "a")).await;
     assert!(matches!(late, Err(Error::NotFound { .. })));
     assert!(
         e.ballots.read_unlogged(s.id()).await.unwrap().is_none(),

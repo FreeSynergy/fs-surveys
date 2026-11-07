@@ -9,7 +9,7 @@ use fs_surveys_methods::Method;
 use super::handle::SurveyRepo;
 use crate::error::Result;
 use crate::model::{
-    Answer, Credential, Cursor, Decision, Evaluation, NamedResponse, Page, Summary, Survey,
+    Answer, Class, Credential, Cursor, Decision, Evaluation, NamedResponse, Page, Summary, Survey,
 };
 use crate::traits::{Decisions, Respond, Results};
 use crate::unsupported::not_possible;
@@ -61,6 +61,9 @@ impl Results for SurveyRepo {
     }
     async fn export(&self, id: ObjectId, media_type: &str) -> Result<Vec<u8>> {
         SurveyRepo::export(self, id, media_type).await
+    }
+    async fn export_ai(&self, id: ObjectId, media_type: &str) -> Result<Vec<u8>> {
+        self.export_class(id, media_type, Class::Ai).await
     }
     async fn filter(
         &self,

@@ -43,7 +43,7 @@ async fn all_ten_methods_count_people_and_ais_apart() {
         );
         let part = got.ai.as_deref().expect("AI part");
         assert!(
-            same(&part, &ais),
+            same(part, &ais),
             "{m:?}: the AI part is the AI answers alone"
         );
         assert!(part.ai.is_none(), "{m:?}: never nested");

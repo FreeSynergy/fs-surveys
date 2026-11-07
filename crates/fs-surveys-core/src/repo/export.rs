@@ -1,16 +1,17 @@
 //! Export as CSV.
 //!
 //! Pattern: Builder (`Csv`) — `named`: one row per response with the person; anonymous: totals only.
-//! Free text is neutralised against spreadsheet formulas.
+//! Free text is neutralised against spreadsheet formulas. People and AIs are two files; the AI file
+//! tags every row.
 
 use fs_interfaces::Unsupported;
 use fs_store::ObjectId;
 
 use super::handle::SurveyRepo;
-use super::reading::Row;
+use super::reading::{Collected, Row};
 use crate::csv::{Csv, escape, text_cell};
 use crate::error::Result;
-use crate::model::{ALL_STAGES, AnswerValue, Question, QuestionKind, Survey};
+use crate::model::{ALL_STAGES, AnswerValue, Class, Question, QuestionKind, Survey};
 
 fn cell(q: &Question, row: &Row) -> String {
     let Some(a) = row.answers.iter().find(|a| a.question == q.id) else {
@@ -31,8 +32,16 @@ fn cell(q: &Question, row: &Row) -> String {
     }
 }
 
-fn rows_csv(s: &Survey, rows: &[Row]) -> Vec<u8> {
-    let mut out = Csv::default();
+fn document(class: Class) -> Csv {
+    if class.is_ai() {
+        Csv::tagged("ai")
+    } else {
+        Csv::default()
+    }
+}
+
+fn rows_csv(s: &Survey, rows: &[Row], class: Class) -> Vec<u8> {
+    let mut out = document(class);
     let mut head = vec!["person".to_string()];
     head.extend(s.questions.iter().map(|q| text_cell(&q.text)));
     out.row(&head);
@@ -44,8 +53,8 @@ fn rows_csv(s: &Survey, rows: &[Row]) -> Vec<u8> {
     out.finish()
 }
 
-fn totals_csv(s: &Survey, summary: &crate::model::Summary) -> Vec<u8> {
-    let mut out = Csv::default();
+fn totals_csv(s: &Survey, summary: &crate::model::Summary, class: Class) -> Vec<u8> {
+    let mut out = document(class);
     out.row(&["question".into(), "value".into(), "count".into()]);
     for (q, t) in s.questions.iter().zip(&summary.questions) {
         let name = text_cell(&q.text);
@@ -70,8 +79,18 @@ fn totals_csv(s: &Survey, summary: &crate::model::Summary) -> Vec<u8> {
 }
 
 impl SurveyRepo {
-    /// `result.export`: `text/csv` only.
+    /// `result.export`: `text/csv` only. The answers of people; the AI answers are `export_class`.
     pub async fn export(&self, id: ObjectId, media_type: &str) -> Result<Vec<u8>> {
+        self.export_class(id, media_type, Class::Human).await
+    }
+
+    /// `result.export` of one class. The AI file has its header and no rows when the AI part is not shown.
+    pub(super) async fn export_class(
+        &self,
+        id: ObjectId,
+        media_type: &str,
+        class: Class,
+    ) -> Result<Vec<u8>> {
         if media_type != "text/csv" {
             return Err(Unsupported::new(
                 "result.export",
@@ -80,13 +99,16 @@ impl SurveyRepo {
             .into());
         }
         let s = self.require(id).await?;
-        let c = self.collect(&s, ALL_STAGES).await?;
+        let lanes = self.collect(&s, ALL_STAGES).await?;
+        let (found, shown) = lanes.of(class);
+        let none = Collected {
+            rows: vec![],
+            held_back: found.held_back,
+        };
+        let c = if shown { found } else { &none };
         if s.is_anonymous() {
-            return Ok(totals_csv(
-                &s,
-                &super::summary::totals(&s, &c.rows, c.held_back)?,
-            ));
+            return Ok(totals_csv(&s, &super::summary::totals(&s, c)?, class));
         }
-        Ok(rows_csv(&s, &c.rows))
+        Ok(rows_csv(&s, &c.rows, class))
     }
 }

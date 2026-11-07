@@ -1,12 +1,13 @@
-//! The content of one box: pending ballots, released batches, token hashes.
+//! The content of one box: pending ballots, released batches, token hashes, once for people and once for AIs.
 //!
 //! Pattern: Aggregate — one value per survey, changed only through its methods. A ballot has no
-//! person, time or id; it enters at a random position; release shuffles it.
+//! person, time or id; it enters at a random position; release shuffles it. The two classes have a lane
+//! each, so AI ballots never fill a batch of people, nor the other way round.
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::model::Answer;
+use crate::model::{Answer, Class};
 use crate::random::{insert_random, shuffle};
 
 /// One anonymous ballot: answers in question order, nothing else.
@@ -19,50 +20,100 @@ pub struct Batch {
     ballots: Vec<Ballot>,
 }
 
-/// The box of a survey.
+/// Everything of one class.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct BallotBox {
+#[serde(default)]
+pub struct Lane {
     pending: Vec<Ballot>,
     batches: Vec<Batch>,
     tokens: Vec<String>,
 }
 
-impl BallotBox {
-    /// Add a ballot at a random position among the pending ones.
-    pub fn add_ballot(&mut self, ballot: Ballot) -> Result<()> {
-        insert_random(&mut self.pending, ballot)
-    }
-
-    /// Keep a token hash (sorted, so the order says nothing about who was invited when).
-    pub fn add_token(&mut self, hash: String) {
-        if let Err(at) = self.tokens.binary_search(&hash) {
-            self.tokens.insert(at, hash);
-        }
-    }
-
-    /// Remove a token hash; false if it is not there (spent or never issued).
-    pub fn spend(&mut self, hash: &str) -> bool {
-        self.tokens
-            .binary_search_by(|t| t.as_str().cmp(hash))
-            .map(|at| self.tokens.remove(at))
-            .is_ok()
-    }
-
-    /// Release the pending ballots as one shuffled batch of `stage`, if there are at least
-    /// `min_group`; a smaller rest stays. Returns whether a batch was made.
-    pub fn release(&mut self, stage: u16, min_group: u16) -> Result<bool> {
+impl Lane {
+    fn release(&mut self, stage: u16, min_group: u16) -> Result<()> {
         if self.pending.is_empty() || self.pending.len() < usize::from(min_group) {
-            return Ok(false);
+            return Ok(());
         }
         let mut ballots = std::mem::take(&mut self.pending);
         shuffle(&mut ballots)?;
         self.batches.push(Batch { stage, ballots });
-        Ok(true)
+        Ok(())
+    }
+}
+
+/// The box of a survey. The lane of people keeps the layout of version 0.1.0.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct BallotBox {
+    #[serde(flatten)]
+    people: Lane,
+    #[serde(default)]
+    ai: Lane,
+}
+
+impl BallotBox {
+    fn lane(&self, class: Class) -> &Lane {
+        if class.is_ai() {
+            &self.ai
+        } else {
+            &self.people
+        }
     }
 
-    /// Released ballots of `stage` (`0xFFFF` = all), each with the number of its batch.
-    pub fn released(&self, stage: u16) -> Vec<(usize, &Ballot)> {
-        self.batches
+    fn lane_mut(&mut self, class: Class) -> &mut Lane {
+        if class.is_ai() {
+            &mut self.ai
+        } else {
+            &mut self.people
+        }
+    }
+
+    /// Add a ballot at a random position among the pending ones of its class.
+    pub fn add_ballot(&mut self, class: Class, ballot: Ballot) -> Result<()> {
+        insert_random(&mut self.lane_mut(class).pending, ballot)
+    }
+
+    /// Keep a token hash in the lane of the class it was issued to (sorted, so the order says nothing
+    /// about who was invited when).
+    pub fn add_token(&mut self, class: Class, hash: String) {
+        let tokens = &mut self.lane_mut(class).tokens;
+        if let Err(at) = tokens.binary_search(&hash) {
+            tokens.insert(at, hash);
+        }
+    }
+
+    /// The class a token hash was issued to; none if it is spent or was never issued.
+    pub fn token_class(&self, hash: &str) -> Option<Class> {
+        Class::BOTH.into_iter().find(|c| {
+            let t = &self.lane(*c).tokens;
+            t.binary_search_by(|x| x.as_str().cmp(hash)).is_ok()
+        })
+    }
+
+    /// Remove a token hash from either lane; false if it is not there (spent or never issued).
+    pub fn spend(&mut self, hash: &str) -> bool {
+        let Some(class) = self.token_class(hash) else {
+            return false;
+        };
+        let tokens = &mut self.lane_mut(class).tokens;
+        tokens
+            .binary_search_by(|t| t.as_str().cmp(hash))
+            .map(|at| tokens.remove(at))
+            .is_ok()
+    }
+
+    /// Release the pending ballots of each class as one shuffled batch of `stage`, if there are at
+    /// least `min_group` of that class; a smaller rest stays.
+    pub fn release(&mut self, stage: u16, min_group: u16) -> Result<()> {
+        for c in Class::BOTH {
+            self.lane_mut(c).release(stage, min_group)?;
+        }
+        Ok(())
+    }
+
+    /// Released ballots of `class` and `stage` (`0xFFFF` = all), each with the number of its batch.
+    pub fn released(&self, class: Class, stage: u16) -> Vec<(usize, &Ballot)> {
+        self.lane(class)
+            .batches
             .iter()
             .enumerate()
             .filter(|(_, b)| stage == crate::model::ALL_STAGES || b.stage == stage)
@@ -70,8 +121,13 @@ impl BallotBox {
             .collect()
     }
 
-    /// Ballots not released yet.
-    pub fn held_back(&self) -> usize {
-        self.pending.len()
+    /// Ballots of `class` not released yet.
+    pub fn held_back(&self, class: Class) -> usize {
+        self.lane(class).pending.len()
+    }
+
+    /// Whether the AI lane holds any ballot, released or not.
+    pub fn has_ai_ballots(&self) -> bool {
+        !self.ai.pending.is_empty() || !self.ai.batches.is_empty()
     }
 }

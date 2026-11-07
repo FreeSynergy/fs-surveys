@@ -21,12 +21,22 @@ fn nonblank(name: &str) -> Result<&str> {
 }
 
 impl SurveyRepo {
-    /// `survey.create`: a new draft.
+    /// `survey.create`: a new draft. It has no creator, so AIs can never be allowed in it.
     pub async fn create(
         &self,
         name: &str,
         anonymity: Anonymity,
         scope: &[ObjectId],
+    ) -> Result<Survey> {
+        self.create_with(name, anonymity, scope, None).await
+    }
+
+    pub(super) async fn create_with(
+        &self,
+        name: &str,
+        anonymity: Anonymity,
+        scope: &[ObjectId],
+        creator: Option<String>,
     ) -> Result<Survey> {
         let s = Survey {
             envelope: self.fresh_envelope(SURVEY_TYPE, nonblank(name)?),
@@ -37,7 +47,7 @@ impl SurveyRepo {
             stage: 0,
             min_group: DEFAULT_MIN_GROUP,
             ai_allowed: false,
-            creator: None,
+            creator,
         };
         check_min_group(anonymity, s.min_group)?;
         self.objects.put(s.to_object(), &self.actor).await?;

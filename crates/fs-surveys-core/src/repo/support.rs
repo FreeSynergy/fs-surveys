@@ -7,8 +7,9 @@ use fs_interfaces::Capabilities;
 
 use super::handle::SurveyRepo;
 
-const SUPPORTED: [&str; 22] = [
+const SUPPORTED: [&str; 23] = [
     "survey.create",
+    "survey.aiAllowed",
     "survey.edit",
     "survey.anonymity",
     "survey.classify",

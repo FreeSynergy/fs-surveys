@@ -4,8 +4,8 @@ mod common;
 use common::*;
 use fs_store::ObjectId;
 use fs_surveys_core::{
-    ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Credential, Method,
-    Question, QuestionKind, Survey,
+    ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Method, Question,
+    QuestionKind, Survey,
 };
 
 /// `yn` (a / b) and a conditional scale `band` shown only after "a".
@@ -73,19 +73,19 @@ async fn a_lone_answer_in_a_later_batch_stays_hidden_across_stages() {
     let (s, a, b) = conditional(&e, &[team]).await;
     for _ in 0..5 {
         e.repo
-            .submit(s.id(), Credential::None, with_band(a, b, 1))
+            .submit(s.id(), human(), with_band(a, b, 1))
             .await
             .unwrap();
     }
     e.repo.widen(s.id(), root).await.unwrap();
     for _ in 0..4 {
         e.repo
-            .submit(s.id(), Credential::None, choice(a, "b"))
+            .submit(s.id(), human(), choice(a, "b"))
             .await
             .unwrap();
     }
     e.repo
-        .submit(s.id(), Credential::None, with_band(a, b, 9))
+        .submit(s.id(), human(), with_band(a, b, 9))
         .await
         .unwrap();
     e.repo.close(s.id()).await.unwrap();
@@ -105,7 +105,7 @@ async fn closing_and_reopening_shows_no_lone_answer() {
     let (s, a, b) = conditional(&e, &[]).await;
     for _ in 0..5 {
         e.repo
-            .submit(s.id(), Credential::None, with_band(a, b, 1))
+            .submit(s.id(), human(), with_band(a, b, 1))
             .await
             .unwrap();
     }
@@ -114,12 +114,12 @@ async fn closing_and_reopening_shows_no_lone_answer() {
     e.repo.reopen(s.id()).await.unwrap();
     for _ in 0..4 {
         e.repo
-            .submit(s.id(), Credential::None, choice(a, "b"))
+            .submit(s.id(), human(), choice(a, "b"))
             .await
             .unwrap();
     }
     e.repo
-        .submit(s.id(), Credential::None, with_band(a, b, 9))
+        .submit(s.id(), human(), with_band(a, b, 9))
         .await
         .unwrap();
     e.repo.close(s.id()).await.unwrap();
@@ -167,23 +167,17 @@ async fn evaluation_follows_the_same_rule() {
         ]
     };
     for _ in 0..3 {
-        e.repo
-            .submit(s.id(), Credential::None, two("a"))
-            .await
-            .unwrap();
+        e.repo.submit(s.id(), human(), two("a")).await.unwrap();
     }
     e.repo.close(s.id()).await.unwrap();
     e.repo.reopen(s.id()).await.unwrap();
     for _ in 0..2 {
         e.repo
-            .submit(s.id(), Credential::None, choice(a, "b"))
+            .submit(s.id(), human(), choice(a, "b"))
             .await
             .unwrap();
     }
-    e.repo
-        .submit(s.id(), Credential::None, two("c"))
-        .await
-        .unwrap();
+    e.repo.submit(s.id(), human(), two("c")).await.unwrap();
     e.repo.close(s.id()).await.unwrap();
     let ev = e
         .repo

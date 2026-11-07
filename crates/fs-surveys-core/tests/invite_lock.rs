@@ -42,7 +42,9 @@ fn slow(fail_first: bool) -> Arc<Slow> {
 async fn a_submit_does_not_wait_for_slow_deliveries() {
     let e = env().await;
     let d = slow(false);
-    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME).with_delivery(d.clone());
+    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME)
+        .with_ai_marking(std::sync::Arc::new(common::ai::Marks))
+        .with_delivery(d.clone());
     let (s, q) = open_survey(&e, Anonymity::AnonymousOnce).await;
     let people: Vec<String> = (0..5).map(|n| person(&n.to_string())).collect();
     let (r, id) = (repo.clone(), s.id());
@@ -67,7 +69,9 @@ async fn a_submit_does_not_wait_for_slow_deliveries() {
 async fn parallel_invites_of_one_person_send_one_token() {
     let e = env().await;
     let d = slow(false);
-    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME).with_delivery(d.clone());
+    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME)
+        .with_ai_marking(std::sync::Arc::new(common::ai::Marks))
+        .with_delivery(d.clone());
     let (s, _) = open_survey(&e, Anonymity::AnonymousOnce).await;
     let (r1, r2, id) = (repo.clone(), repo.clone(), s.id());
     let p = vec![person("ada")];
@@ -83,7 +87,9 @@ async fn parallel_invites_of_one_person_send_one_token() {
 async fn a_failed_delivery_frees_the_person_and_keeps_no_hash() {
     let e = env().await;
     let d = slow(true);
-    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME).with_delivery(d.clone());
+    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME)
+        .with_ai_marking(std::sync::Arc::new(common::ai::Marks))
+        .with_delivery(d.clone());
     let (s, _) = open_survey(&e, Anonymity::AnonymousOnce).await;
     let p = vec![person("ada")];
     assert!(matches!(

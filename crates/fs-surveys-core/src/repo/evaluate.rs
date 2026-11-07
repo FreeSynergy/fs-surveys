@@ -7,9 +7,9 @@ use fs_store::ObjectId;
 use fs_surveys_methods::{Ballot, Method, evaluate_with_held_back};
 
 use super::handle::SurveyRepo;
-use super::reading::values_for;
+use super::reading::{Collected, values_for};
 use crate::error::{Error, Result};
-use crate::model::{AnswerValue, Evaluation, Question, QuestionKind, SurveyState};
+use crate::model::{AnswerValue, Evaluation, Question, QuestionKind, Survey, SurveyState};
 
 fn ballot_of(kind: QuestionKind, v: &AnswerValue) -> Option<Ballot> {
     Some(match (kind, v) {
@@ -52,8 +52,43 @@ fn check_range(q: &Question, method: Method) -> Result<()> {
     Ok(())
 }
 
+/// One question over the rows of one class, by one method.
+fn over(survey: &Survey, q: &Question, method: Method, counted: &Collected) -> Result<Evaluation> {
+    let (values, left_out) = values_for(survey, &counted.rows, q.id);
+    let ballots: Vec<Ballot> = values
+        .into_iter()
+        .filter_map(|v| ballot_of(q.kind, v))
+        .collect();
+    // Answers the per-question rule left out are held back for this question too.
+    let held_back = counted
+        .held_back
+        .saturating_add(u32::try_from(left_out).unwrap_or(u32::MAX));
+    let mut out = Evaluation {
+        method,
+        winners: vec![],
+        options: vec![],
+        note: String::new(),
+        hidden: survey.is_anonymous() && ballots.len() < usize::from(survey.min_group),
+        held_back,
+        ai: None,
+    };
+    if out.hidden {
+        "too few answers to show".clone_into(&mut out.note);
+        return Ok(out);
+    }
+    let tally = evaluate_with_held_back(&method, &q.choice_ids(), &ballots, held_back as usize)?;
+    (out.winners, out.options, out.note) = (tally.winners, tally.options, tally.note);
+    if survey.is_anonymous() && survey.state == SurveyState::Open {
+        // A winner (or its absence) would change with each submit and show arrival times.
+        out.winners.clear();
+        "the survey is still open; a result is given after it is closed".clone_into(&mut out.note);
+    }
+    Ok(out)
+}
+
 impl SurveyRepo {
     /// `survey.method`: the same ballots can be evaluated by every method whose ballot form fits.
+    /// Every method goes through `over`, once for people and once for the AI part.
     pub async fn evaluate(
         &self,
         id: ObjectId,
@@ -68,38 +103,9 @@ impl SurveyRepo {
         })?;
         check_kind(q)?;
         check_range(q, method)?;
-        let counted = self.collect(&survey, stage).await?;
-        let (values, left_out) = values_for(&survey, &counted.rows, question);
-        let ballots: Vec<Ballot> = values
-            .into_iter()
-            .filter_map(|v| ballot_of(q.kind, v))
-            .collect();
-        // Answers the per-question rule left out are held back for this question too.
-        let held_back = counted
-            .held_back
-            .saturating_add(u32::try_from(left_out).unwrap_or(u32::MAX));
-        let mut out = Evaluation {
-            method,
-            winners: vec![],
-            options: vec![],
-            note: String::new(),
-            hidden: survey.is_anonymous() && ballots.len() < usize::from(survey.min_group),
-            held_back,
-            ai: None,
-        };
-        if out.hidden {
-            "too few answers to show".clone_into(&mut out.note);
-            return Ok(out);
-        }
-        let tally =
-            evaluate_with_held_back(&method, &q.choice_ids(), &ballots, held_back as usize)?;
-        (out.winners, out.options, out.note) = (tally.winners, tally.options, tally.note);
-        if survey.is_anonymous() && survey.state == SurveyState::Open {
-            // A winner (or its absence) would change with each submit and show arrival times.
-            out.winners.clear();
-            "the survey is still open; a result is given after it is closed"
-                .clone_into(&mut out.note);
-        }
-        Ok(out)
+        let lanes = self.collect(&survey, stage).await?;
+        let (mut people, ai) = lanes.run(|c| over(&survey, q, method, c))?;
+        people.ai = ai.map(Box::new);
+        Ok(people)
     }
 }

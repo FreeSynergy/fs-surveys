@@ -95,8 +95,9 @@ fn fs_hash(token: &str) -> String {
 #[tokio::test]
 async fn a_failed_delivery_leaves_no_usable_token() {
     let e = env().await;
-    let repo =
-        SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME).with_delivery(Arc::new(Failing));
+    let repo = SurveyRepo::new(e.main.clone(), e.ballots.clone(), ME)
+        .with_ai_marking(std::sync::Arc::new(common::ai::Marks))
+        .with_delivery(Arc::new(Failing));
     let (s, q) = once(&e).await;
     let err = repo
         .invite(s.id(), &[person("ada")], &[])

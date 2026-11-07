@@ -2,7 +2,8 @@
 //!
 //! Pattern: Strategy (ports) — groups resolve through `GroupLookup`, tokens leave through `TokenDelivery`.
 //! A token is delivered first; only then is its hash kept, in the box, apart from the person who
-//! is recorded in the main store.
+//! is recorded in the main store. The hash goes into the lane of the invited person's class, and the
+//! Specification `admits` decides whether an AI is invited at all, at claim and again at settle.
 
 use fs_interfaces::Unsupported;
 use fs_store::{ObjectId, Query, StoredObject};
@@ -12,8 +13,9 @@ use super::consts::INVITEE_TYPE;
 use super::envelope::context;
 use super::handle::SurveyRepo;
 use super::inflight::Mark;
+use crate::check::admits;
 use crate::error::{Error, Result};
-use crate::model::{AS2_TYPE, Anonymity, InviteReport, Survey, SurveyState};
+use crate::model::{AS2_TYPE, Anonymity, Class, InviteReport, Survey, SurveyState};
 use crate::random::token;
 use crate::tokens::hash_token;
 
@@ -95,10 +97,13 @@ impl SurveyRepo {
     }
 
     /// Under the lock: is this person new, and may this caller deliver to them? `None` = already
-    /// invited, or another call is delivering to them right now.
-    async fn claim(&self, id: ObjectId, person: &str) -> Result<Option<Mark>> {
+    /// invited, or another call is delivering to them right now. An AI the survey does not allow is
+    /// an error (`AiNotAllowed`) before anything is sent.
+    async fn claim(&self, id: ObjectId, person: &str, class: Class) -> Result<Option<Mark>> {
         let _guard = self.lock_for(id).await;
-        self.check_invitable(&self.require(id).await?)?;
+        let s = self.require(id).await?;
+        self.check_invitable(&s)?;
+        admits(&s, class)?;
         if self.is_invited(id, person).await? {
             return Ok(None);
         }
@@ -106,13 +111,21 @@ impl SurveyRepo {
     }
 
     /// Under the lock again: keep the hash (if any), then record the person.
-    async fn settle(&self, id: ObjectId, person: &str, hash: Option<String>) -> Result<()> {
+    async fn settle(
+        &self,
+        id: ObjectId,
+        person: &str,
+        hash: Option<String>,
+        class: Class,
+    ) -> Result<()> {
         let _guard = self.lock_for(id).await;
         let s = self.require(id).await?;
         self.check_invitable(&s)?;
+        // The permission may have been withdrawn while the token was on its way: keep nothing then.
+        admits(&s, class)?;
         if let Some(h) = &hash {
             self.edit_box(&s, |b| {
-                b.add_token(h.clone());
+                b.add_token(class, h.clone());
                 Ok(())
             })
             .await?;
@@ -146,18 +159,30 @@ impl SurveyRepo {
         let once = self.require(id).await?.anonymity == Anonymity::AnonymousOnce;
         let mut report = InviteReport::default();
         for person in self.people_of(people, groups).await? {
-            let Some(mark) = self.claim(id, &person).await? else {
-                report.already.push(person);
-                continue;
+            let class = self.class_for(Some(&person)).await?;
+            let mark = match self.claim(id, &person, class).await {
+                Ok(Some(mark)) => mark,
+                Ok(None) => {
+                    report.already.push(person);
+                    continue;
+                }
+                Err(Error::AiNotAllowed) => {
+                    report.refused.push(person);
+                    continue;
+                }
+                Err(e) => return Err(e),
             };
             let hash = if once {
                 Some(self.deliver(id, &person).await?)
             } else {
                 None
             };
-            self.settle(id, &person, hash).await?;
+            match self.settle(id, &person, hash, class).await {
+                Ok(()) => report.invited.push(person),
+                Err(Error::AiNotAllowed) => report.refused.push(person),
+                Err(e) => return Err(e),
+            }
             drop(mark);
-            report.invited.push(person);
         }
         Ok(report)
     }

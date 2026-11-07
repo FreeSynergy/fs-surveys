@@ -104,6 +104,11 @@ pub async fn env() -> Env {
     }
 }
 
+/// The credential of a person on an `anonymousOpen` survey: only used to ask the marking.
+pub fn human() -> Credential {
+    Credential::Person(person("h"))
+}
+
 pub fn person(n: &str) -> String {
     format!("https://example.org/people/{n}")
 }
@@ -138,10 +143,7 @@ pub fn choice(q: ObjectId, c: &str) -> Vec<Answer> {
 /// `n` anonymous submits of `c`.
 pub async fn submit_open(e: &Env, s: &Survey, q: ObjectId, c: &str, n: usize) {
     for _ in 0..n {
-        e.repo
-            .submit(s.id(), Credential::None, choice(q, c))
-            .await
-            .unwrap();
+        e.repo.submit(s.id(), human(), choice(q, c)).await.unwrap();
     }
 }
 

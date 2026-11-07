@@ -5,8 +5,7 @@ mod common;
 use common::*;
 use fs_store::ObjectId;
 use fs_surveys_core::{
-    Anonymity, Answer, AnswerValue as V, Credential, Error, OptionScore, Question,
-    QuestionKind as K, Survey,
+    Anonymity, Answer, AnswerValue as V, Error, OptionScore, Question, QuestionKind as K, Survey,
 };
 
 fn ans(q: ObjectId, value: V) -> Answer {
@@ -33,7 +32,7 @@ fn scale() -> Question {
 }
 
 async fn refused(e: &Env, s: &Survey, a: Vec<Answer>) {
-    let r = e.repo.submit(s.id(), Credential::None, a).await;
+    let r = e.repo.submit(s.id(), human(), a).await;
     assert!(matches!(r, Err(Error::Invalid(_))), "{r:?}");
 }
 
@@ -117,5 +116,5 @@ async fn answers_are_validated() {
         ans(so, sc2("a", 10)),
         ans(m, V::Choices(vec!["a".into()])),
     ];
-    e.repo.submit(s.id(), Credential::None, good).await.unwrap();
+    e.repo.submit(s.id(), human(), good).await.unwrap();
 }

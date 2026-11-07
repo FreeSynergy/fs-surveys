@@ -1,4 +1,5 @@
 //! A survey in one go: design, invite with tokens, answer anonymously, release, evaluate, decide.
+//! The host tells who is an AI (`AiMarking`); an AI is not invited unless the creator allowed it.
 //!
 //! Run with `cargo run -p fs-surveys-core --example demo`.
 
@@ -7,9 +8,19 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use fs_store::{ObjectId, TursoStore};
 use fs_surveys_core::{
-    ALL_STAGES, Anonymity, Answer, AnswerValue, Credential, Error, Method, Question, QuestionKind,
-    SurveyRepo, TokenDelivery,
+    ALL_STAGES, AiMarking, Anonymity, Answer, AnswerValue, Credential, Designer, Error, Method,
+    Question, QuestionKind, SurveyRepo, TokenDelivery,
 };
+
+/// The host's role book in miniature: `bot-*` are AIs, other people are humans.
+struct RoleBook;
+
+#[async_trait]
+impl AiMarking for RoleBook {
+    async fn is_ai(&self, person: &str) -> Result<Option<bool>, Error> {
+        Ok(Some(person.contains("/bot-")))
+    }
+}
 
 /// Stands in for a messenger: keeps the tokens so the demo can answer with them.
 #[derive(Default)]
@@ -32,10 +43,16 @@ async fn main() -> Result<(), Error> {
     let outbox = Arc::new(Outbox::default());
     let repo = SurveyRepo::new(main, ballots, "https://example.org/users/owner")
         .with_instance("example.org")
-        .with_delivery(outbox.clone());
+        .with_delivery(outbox.clone())
+        .with_ai_marking(Arc::new(RoleBook));
 
     let survey = repo
-        .create("Where do we meet?", Anonymity::AnonymousOnce, &[])
+        .create_by(
+            "Where do we meet?",
+            Anonymity::AnonymousOnce,
+            &[],
+            "https://example.org/people/ada",
+        )
         .await?;
     repo.edit(
         survey.id(),
@@ -50,14 +67,15 @@ async fn main() -> Result<(), Error> {
     let (_, question) = repo.add_question(survey.id(), place).await?;
     repo.publish(survey.id()).await?;
 
-    let people: Vec<String> = ["ada", "bob", "cy", "di"]
+    let people: Vec<String> = ["ada", "bob", "cy", "di", "bot-1"]
         .iter()
         .map(|n| format!("https://example.org/people/{n}"))
         .collect();
     let report = repo.invite(survey.id(), &people, &[]).await?;
     println!(
-        "invited {} people; tokens went to the outbox, not to us",
-        report.invited.len()
+        "invited {} people, refused {} AI; tokens went to the outbox, not to us",
+        report.invited.len(),
+        report.refused.len()
     );
 
     let tokens = outbox.0.lock().unwrap().clone();

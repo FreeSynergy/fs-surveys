@@ -1,12 +1,12 @@
 # fs-surveys – Design
 
 `fs-surveys` is the surveys program of FreeSynergy. This repo holds the **program core**, no GUI. Contract: `surveys.capnp` in
-`fs-interfaces` v0.21.0 (draft, provisional: no survey frontends are analysed yet). Program docs:
+`fs-interfaces` v0.40.0 (draft, provisional: no survey frontends are analysed yet). Program docs:
 `fs-documentation/docs/en/programs/apps/surveys/`.
 
 ## State
 
-Version 0.1.0. Contract methods are the traits; no capnp server and no GUI.
+Version 0.1.0 plus branch `ai-participants` (not tagged, not merged). Contract methods are the traits; no capnp server and no GUI.
 
 | Area | State |
 |---|---|
@@ -18,8 +18,11 @@ Version 0.1.0. Contract methods are the traits; no capnp server and no GUI.
 | Widening over groups through `GroupLookup` | done, tested with real `fs-groups-core` |
 | Decisions linked to task IRIs | done |
 | `survey.publicLink`, `poll.embed` | `Unsupported`; `publish` refuses a `public` survey |
+| AI participants: permission per survey (default no), marking by the host, doubt = AI, results apart in every reading | done, **provisional**, see "AI participants" |
+| AI participants on `public` surveys | `Unsupported` with the rest of `public` |
+| AI guard against a token handed to an AI, and against a caller who names someone else | **not possible**, stated limits below |
 | capnp server | not built; thread 3 |
-| Tests | 107, real stores |
+| Tests | 133, real stores |
 
 Checked by an independent reviewer over three rounds before the tag; two rounds found serious errors, and the last found nothing serious.
 
@@ -67,10 +70,18 @@ while the survey is a draft or open, and **granting needs a creator who is a hum
 without `createBy` has no creator, so AI participation can never be allowed for it. Withdrawing the permission leaves every earlier AI answer
 where it is, apart; it blocks new AI answers, saves, invitations and the spending of tokens issued to AIs (a refused spend keeps the token).
 
+### Smaller decisions and limits
+* The class is fixed when the answer is submitted (or the token issued) and kept with it. If the marking changes later, old answers stay where they are.
+* A stored named response without the `fs:ai` flag counts as an AI answer (doubt). A survey without `fs:aiAllowed` counts as "no".
+* No MCP tool exists for any of this (owner, 2026-11-07): not for the permission, not for the AI part of the results.
+* Whether `Credential::person` is really the caller is the host's job (capnp server, thread 3). The core cannot check it.
+* An AI that is invited and allowed can hand its token to a person; the ballot counts as AI. Same limit, other direction.
+
 ### Results
-`Summary` and `Evaluation` carry an `ai` part (same shape, never nested) next to the part for people; it is present when the survey allows AI
+All ten methods run through `Lanes::run` in `repo/reading.rs`, which is also what summary, filter and both exports use; there is no
+reading of answers outside it. `Summary` and `Evaluation` carry an `ai` part (same shape, never nested) next to the part for people; it is present when the survey allows AI
 or holds AI answers. `ballots`, counts, `heldBack` and winners at the top level are people only. `Results.exportAi` is a second CSV with a first
-column `participants` = `ai`; `export` is people only. A named response says whether it is an AI answer. `SurveyChange::AiAnswered` is a
+column `participants` = `ai`; `export` is people only. A named response says whether it is an AI answer. An AI part is shown when the survey allows AIs or holds AI answers; otherwise `ai` is absent. `SurveyChange::AiAnswered` is a
 separate event; `Answered` is people only.
 
 ## Decisions (the owner may change them; all provisional)
@@ -85,7 +96,7 @@ AS2 JSON with `orderedItems` = AS2 `Question`s (`oneOf`/`anyOf`/`closed`) plus t
 ids are UUIDv7, which contain the time. An anonymous answer stored as an ordinary object would carry all of that. So:
 
 * **Anonymous answers live in a separate store, the ballot store.** The host passes a second store, as `Arc<dyn UnloggedObjects>` (fs-store 0.3), which is never connected to the hub. Nothing anonymous goes into the main store.
-* **One box per survey.** The ballot store holds one object per survey with: `pending` ballots, released `batches` (`{stage, ballots}`) and unspent token hashes. A ballot has no person, time or id. Each submit inserts at a random position.
+* **One box per survey.** (It has a lane for people and one for AIs, see "AI participants"; what follows is true of each lane.) The ballot store holds one object per survey with: `pending` ballots, released `batches` (`{stage, ballots}`) and unspent token hashes. A ballot has no person, time or id. Each submit inserts at a random position.
 * **No log, no time.** Boxes are written with `put_unlogged`: no activity exists at any moment, so a crash leaves nothing. Both envelope times are the Unix epoch. The box id contains only when the box was created.
 * **Results come in batches.** Reads only see released batches. Release happens when the survey closes or widens: if `pending` has at least `minGroup` ballots they become one shuffled batch of the current stage. Smaller rests stay and are reported as `heldBack`. Reading never releases, so comparing two readings, or closing and reopening, shows at least a batch. `minGroup` defaults to 5 and is at least 3 on anonymous surveys.
 * **Per question too.** A batch counts for a question only if it has at least `minGroup` answers to that question, or a conditional question would expose one answer through the difference between readings.

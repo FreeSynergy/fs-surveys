@@ -13,6 +13,7 @@ mod inflight;
 mod invite;
 mod lifecycle;
 mod named;
+mod participant;
 mod provide;
 mod provide_io;
 mod questions;

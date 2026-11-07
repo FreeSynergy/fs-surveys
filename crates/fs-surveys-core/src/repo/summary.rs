@@ -6,13 +6,15 @@
 use fs_store::ObjectId;
 
 use super::handle::SurveyRepo;
-use super::reading::{Row, values_for};
+use super::reading::{Collected, Lanes, values_for};
 use crate::check::{given, holds};
 use crate::error::{Error, Result};
 use crate::model::{Condition, ConditionOp, Summary, Survey};
 use crate::summarize::summarize;
 
-pub(super) fn totals(s: &Survey, rows: &[Row], held_back: u32) -> Result<Summary> {
+/// The figures of one class.
+pub(super) fn totals(s: &Survey, c: &Collected) -> Result<Summary> {
+    let (rows, held_back) = (&c.rows[..], c.held_back);
     let mut questions = vec![];
     for q in &s.questions {
         let (values, _) = values_for(s, rows, q.id);
@@ -28,12 +30,18 @@ pub(super) fn totals(s: &Survey, rows: &[Row], held_back: u32) -> Result<Summary
     })
 }
 
+/// People first, the AI part inside it.
+fn both(s: &Survey, lanes: &Lanes) -> Result<Summary> {
+    let (mut people, ai) = lanes.run(|c| totals(s, c))?;
+    people.ai = ai.map(Box::new);
+    Ok(people)
+}
+
 impl SurveyRepo {
-    /// `result.summary`.
+    /// `result.summary`: the AI part is counted apart.
     pub async fn summary(&self, id: ObjectId, stage: u16) -> Result<Summary> {
         let s = self.require(id).await?;
-        let c = self.collect(&s, stage).await?;
-        totals(&s, &c.rows, c.held_back)
+        both(&s, &self.collect(&s, stage).await?)
     }
 
     /// `result.filter`: `named` only; the responses that chose `choice` in `question`.
@@ -59,8 +67,8 @@ impl SurveyRepo {
             op: ConditionOp::Includes,
             value: choice.into(),
         };
-        let mut c = self.collect(&s, stage).await?;
-        c.rows.retain(|r| holds(&cond, &given(&r.answers)));
-        totals(&s, &c.rows, c.held_back)
+        let mut lanes = self.collect(&s, stage).await?;
+        lanes.retain(|r| holds(&cond, &given(&r.answers)));
+        both(&s, &lanes)
     }
 }

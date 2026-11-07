@@ -5,7 +5,7 @@ mod common;
 use common::*;
 use fs_store::ObjectId;
 use fs_surveys_core::{
-    Anonymity, Answer, AnswerValue as V, Condition, ConditionOp, Credential, Error, Question,
+    Anonymity, Answer, AnswerValue as V, Condition, ConditionOp, Error, Question,
     QuestionKind as K, Survey,
 };
 
@@ -14,7 +14,7 @@ fn ans(q: ObjectId, value: V) -> Answer {
 }
 
 async fn refused(e: &Env, s: &Survey, a: Vec<Answer>) {
-    let r = e.repo.submit(s.id(), Credential::None, a).await;
+    let r = e.repo.submit(s.id(), human(), a).await;
     assert!(matches!(r, Err(Error::Invalid(_))), "{r:?}");
 }
 
@@ -72,13 +72,13 @@ async fn conditions_look_back_only_and_decide_what_is_asked() {
     refused(&e, &s, [choice(a, "a"), vec![]].concat()).await; // asked and required
     refused(&e, &s, [choice(a, "b"), vec![text(b, "x")]].concat()).await; // not asked, answered
     e.repo
-        .submit(s.id(), Credential::None, choice(a, "b"))
+        .submit(s.id(), human(), choice(a, "b"))
         .await
         .unwrap(); // not asked, not required
     e.repo
         .submit(
             s.id(),
-            Credential::None,
+            human(),
             [choice(a, "a"), vec![text(b, "because")]].concat(),
         )
         .await

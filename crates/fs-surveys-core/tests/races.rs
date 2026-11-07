@@ -119,11 +119,7 @@ async fn a_submit_cannot_recreate_the_box_of_a_deleted_survey() {
         let id = s.id();
         let (r1, r2) = (e.repo.clone(), e.repo.clone());
         let (_, deleted) = par!(
-            async move {
-                r1.submit(id, Credential::None, choice(q, "a"))
-                    .await
-                    .is_ok()
-            },
+            async move { r1.submit(id, human(), choice(q, "a")).await.is_ok() },
             async move { r2.delete(id).await.is_ok() }
         );
         assert!(deleted);
@@ -153,11 +149,7 @@ async fn a_submit_cannot_land_after_the_close() {
         let id = s.id();
         let (r1, r2) = (e.repo.clone(), e.repo.clone());
         let (landed, _) = par!(
-            async move {
-                r1.submit(id, Credential::None, choice(q, "a"))
-                    .await
-                    .is_ok()
-            },
+            async move { r1.submit(id, human(), choice(q, "a")).await.is_ok() },
             async move { r2.close(id).await.is_ok() }
         );
         let sum = e.repo.summary(id, ALL_STAGES).await.unwrap();

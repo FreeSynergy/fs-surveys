@@ -37,7 +37,7 @@ async fn option_scores_count_the_answers_that_scored_each_choice() {
     e.repo.publish(s.id()).await.unwrap();
     for v in [7, 8, 9] {
         e.repo
-            .submit(s.id(), Credential::None, vec![scores(q, "x", v)])
+            .submit(s.id(), human(), vec![scores(q, "x", v)])
             .await
             .unwrap();
     }
@@ -101,11 +101,11 @@ async fn required_questions_refuse_empty_answers() {
         vec![text("  "), list(&["a"])],
         vec![text("x"), list(&[])],
     ] {
-        let r = e.repo.submit(s.id(), Credential::None, bad).await;
+        let r = e.repo.submit(s.id(), human(), bad).await;
         assert!(matches!(r, Err(Error::Invalid(_))), "{r:?}");
     }
     e.repo
-        .submit(s.id(), Credential::None, vec![text("x"), list(&["a"])])
+        .submit(s.id(), human(), vec![text("x"), list(&["a"])])
         .await
         .unwrap();
 }
