@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, PoisonError};
 
-use fs_store::traits::{ObjectQuery, ObjectRepository, UnloggedObjects};
-use fs_store::{ObjectId, Store};
+use fs_objects::traits::{ObjectQuery, ObjectRepository, UnloggedObjects};
+use fs_objects::{ObjectId, Store};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
 use super::backend::StoreAdapter;

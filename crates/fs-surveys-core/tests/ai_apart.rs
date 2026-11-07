@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use common::ai::*;
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::Results as _;
 use fs_surveys_core::{ALL_STAGES, Evaluation, Survey, SurveyChange, SurveyFeed, SurveyListener};
 

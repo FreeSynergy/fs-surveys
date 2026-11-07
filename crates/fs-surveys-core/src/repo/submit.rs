@@ -5,7 +5,7 @@
 //! rule for AIs is the Specification `admits`, asked on every path.
 
 use fs_interfaces::Unsupported;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
 use crate::check::{admits, drop_empty, validate_answers};

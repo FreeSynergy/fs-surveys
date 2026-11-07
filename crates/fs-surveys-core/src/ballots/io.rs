@@ -3,15 +3,15 @@
 //! Pattern: Repository — one box object per survey, id = survey id, written unlogged (no activity at
 //! any moment), with a fixed envelope time (Unix epoch) so no last-write time exists.
 
-use fs_store::{Envelope, ObjectId, StoredObject};
+use fs_objects::{Envelope, ObjectId, StoredObject};
 
 use super::model::BallotBox;
 use crate::error::Result;
 use crate::model::Survey;
 use crate::repo::{BOX_TYPE, SurveyRepo};
 
-fn epoch() -> fs_store::Timestamp {
-    fs_store::Timestamp::UNIX_EPOCH
+fn epoch() -> fs_objects::Timestamp {
+    fs_objects::Timestamp::UNIX_EPOCH
 }
 
 fn object(id: ObjectId, data: &BallotBox, sensitive: &[String]) -> Result<StoredObject> {

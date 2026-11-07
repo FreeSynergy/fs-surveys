@@ -2,7 +2,7 @@
 //!
 //! Pattern: Adapter — maps typed values onto AS2 envelopes (ADR 0020). The `name` is never empty.
 
-use fs_store::{Envelope, ObjectId};
+use fs_objects::{Envelope, ObjectId};
 use serde_json::{Value, json};
 
 use super::consts::CONTEXT;

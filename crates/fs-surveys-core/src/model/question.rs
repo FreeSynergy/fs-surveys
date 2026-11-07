@@ -2,7 +2,7 @@
 //!
 //! Pattern: Value objects (plain data). `Condition` is the expression the Interpreter evaluates.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_methods::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};

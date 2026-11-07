@@ -6,7 +6,7 @@
 //! Specification `admits` decides whether an AI is invited at all, at claim and again at settle.
 
 use fs_interfaces::Unsupported;
-use fs_store::{ObjectId, Query, StoredObject};
+use fs_objects::{ObjectId, Query, StoredObject};
 use serde_json::json;
 
 use super::consts::INVITEE_TYPE;

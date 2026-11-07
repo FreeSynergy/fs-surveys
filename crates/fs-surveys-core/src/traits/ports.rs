@@ -4,7 +4,7 @@
 //! capnp clients plug in behind them.
 
 use async_trait::async_trait;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use crate::error::Result;
 

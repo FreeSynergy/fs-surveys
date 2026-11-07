@@ -6,7 +6,7 @@
 //! and no function ever sees both. The export takes one lane with `Lanes::of`. Reading never releases
 //! or writes anything.
 
-use fs_store::{ObjectId, Query};
+use fs_objects::{ObjectId, Query};
 
 use super::consts::RESPONSE_TYPE;
 use super::handle::SurveyRepo;

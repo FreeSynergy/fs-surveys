@@ -3,10 +3,10 @@
 mod common;
 
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::{ALL_STAGES, Anonymity, Error, Survey};
 
-fn id(g: fs_store_02::ObjectId) -> ObjectId {
+fn id(g: fs_objects_02::ObjectId) -> ObjectId {
     g.to_string().parse().unwrap()
 }
 

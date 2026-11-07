@@ -2,7 +2,7 @@
 //!
 //! Pattern: Tagged union (`AnswerValue`, `Credential`) mirroring the unions of `surveys.capnp`.
 
-use fs_store::{Envelope, ObjectId};
+use fs_objects::{Envelope, ObjectId};
 use serde::{Deserialize, Serialize};
 
 /// One value for one option of an `optionScores` question.

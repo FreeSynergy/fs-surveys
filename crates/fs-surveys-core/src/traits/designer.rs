@@ -4,7 +4,7 @@
 //! reads are required; every mutating method a provider does not override answers `Unsupported`.
 
 use async_trait::async_trait;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use crate::error::Result;
 use crate::model::{Anonymity, Condition, Cursor, InviteReport, Page, Question, Survey};

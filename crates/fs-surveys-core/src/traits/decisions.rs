@@ -3,7 +3,7 @@
 //! Pattern: Repository (interface) + Null Object — reads required, writes default to `Unsupported`.
 
 use async_trait::async_trait;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_methods::Method;
 
 use crate::error::Result;

@@ -3,7 +3,7 @@
 //! Pattern: Repository — every write is one object put, so every edit is atomic. `delete` is a
 //! cascade: named answers, invited people, decisions, the survey, then the box.
 
-use fs_store::{ObjectId, Order, Query};
+use fs_objects::{ObjectId, Order, Query};
 
 use super::consts::{CONTEXT, DECISION_TYPE, INVITEE_TYPE, RESPONSE_TYPE, SURVEY_TYPE};
 use super::handle::SurveyRepo;

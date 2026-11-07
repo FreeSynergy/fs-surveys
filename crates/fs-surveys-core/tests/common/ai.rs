@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 
 use async_trait::async_trait;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::Designer as _;
 use fs_surveys_core::{
     AiMarking, Anonymity, Answer, AnswerValue as V, Credential, Error, Method, OptionScore,

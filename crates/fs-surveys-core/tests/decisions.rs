@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::{ALL_STAGES, Anonymity, Error, Method};
 
 #[tokio::test]

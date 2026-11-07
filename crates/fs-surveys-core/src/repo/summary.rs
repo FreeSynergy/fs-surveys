@@ -3,7 +3,7 @@
 //! Pattern: Strategy by kind (in `summarize`) — this file only picks the answers and applies the rules
 //! of the level: `named` counts live, anonymous hides groups smaller than `minGroup`.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
 use super::reading::{Collected, Lanes, values_for};

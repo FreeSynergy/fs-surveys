@@ -7,7 +7,7 @@ use std::sync::Arc;
 use common::*;
 use fs_surveys_core::{Anonymity, Credential, Error, SurveyRepo, Surveys};
 
-async fn once(e: &Env) -> (fs_surveys_core::Survey, fs_store::ObjectId) {
+async fn once(e: &Env) -> (fs_surveys_core::Survey, fs_objects::ObjectId) {
     open_survey(e, Anonymity::AnonymousOnce).await
 }
 

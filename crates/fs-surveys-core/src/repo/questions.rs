@@ -3,7 +3,7 @@
 //! Pattern: Repository — each change rewrites the one survey object after the design rules pass, so
 //! a refused change leaves the survey as it was.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
 use crate::check::{check_conditions, check_question};

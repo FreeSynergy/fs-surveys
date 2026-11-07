@@ -2,7 +2,7 @@
 
 mod common;
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::{
     ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Method, Question,
     QuestionKind, Survey,

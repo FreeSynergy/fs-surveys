@@ -6,7 +6,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use fs_store::{ObjectId, TursoStore};
+use fs_objects::{ObjectId, TursoStore};
 use fs_surveys_core::{
     ALL_STAGES, AiMarking, Anonymity, Answer, AnswerValue, Credential, Designer, Error, Method,
     Question, QuestionKind, SurveyRepo, TokenDelivery,

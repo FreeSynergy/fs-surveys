@@ -4,7 +4,7 @@ mod common;
 
 use common::ai::*;
 use common::*;
-use fs_store::traits::UnloggedObjects;
+use fs_objects::traits::UnloggedObjects;
 use fs_surveys_core::{ALL_STAGES, Anonymity, Credential, Error};
 use serde_json::{Value, json};
 
