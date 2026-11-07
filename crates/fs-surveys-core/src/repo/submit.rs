@@ -4,7 +4,7 @@
 //! to the box, and a token is spent in the same write as its ballot.
 
 use fs_interfaces::Unsupported;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
 use crate::check::{drop_empty, validate_answers};

@@ -8,7 +8,7 @@ use fs_surveys_core::{
     QuestionKind as K,
 };
 
-fn scores(q: fs_store::ObjectId, c: &str, v: i32) -> Answer {
+fn scores(q: fs_objects::ObjectId, c: &str, v: i32) -> Answer {
     Answer {
         question: q,
         value: AnswerValue::Scores(vec![OptionScore {

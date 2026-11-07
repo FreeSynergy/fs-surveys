@@ -7,7 +7,7 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 /// The shared set of `(survey, person)` pairs in flight.
 pub(super) type InFlight = Arc<Mutex<HashSet<(ObjectId, String)>>>;

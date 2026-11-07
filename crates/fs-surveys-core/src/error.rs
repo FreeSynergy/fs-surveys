@@ -2,7 +2,7 @@
 //!
 //! Pattern: none (plain error enum via `thiserror`) — one `Error` for every public operation.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use crate::model::SurveyState;
 
@@ -14,7 +14,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// The object store failed (an unencrypted store refusing sensitive data shows up here).
     #[error("object store: {0}")]
-    Store(#[from] fs_store::Error),
+    Store(#[from] fs_objects::Error),
     /// Stored JSON could not be read or written.
     #[error("json: {0}")]
     Json(#[from] serde_json::Error),

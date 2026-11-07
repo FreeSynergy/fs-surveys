@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use fs_store::{ObjectId, Query, Store};
+use fs_objects::{ObjectId, Query, Store};
 use fs_surveys_core::{
     ALL_STAGES, Anonymity, Answer, AnswerValue, Condition, ConditionOp, Credential, Error, Method,
     Question, QuestionKind as K,

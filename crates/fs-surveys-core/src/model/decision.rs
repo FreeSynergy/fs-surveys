@@ -2,7 +2,7 @@
 //!
 //! Pattern: Value objects (plain data). Paging is an Iterator over opaque cursors.
 
-use fs_store::{Envelope, ObjectId};
+use fs_objects::{Envelope, ObjectId};
 use fs_surveys_methods::Method;
 
 /// Stage value meaning "all stages".

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use crate::model::{Answer, AnswerValue, Condition, ConditionOp, Question};
 

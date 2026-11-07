@@ -3,7 +3,7 @@
 //! Pattern: Repository (interface) — every method is a read, so all are required.
 
 use async_trait::async_trait;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_methods::Method;
 
 use crate::error::Result;

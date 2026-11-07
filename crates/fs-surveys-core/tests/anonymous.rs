@@ -16,7 +16,7 @@ impl SurveyListener for Seen {
     }
 }
 
-async fn small(e: &Env, a: Anonymity) -> (fs_surveys_core::Survey, fs_store::ObjectId) {
+async fn small(e: &Env, a: Anonymity) -> (fs_surveys_core::Survey, fs_objects::ObjectId) {
     let s = e.repo.create("Lunch", a, &[]).await.unwrap();
     e.repo.edit(s.id(), "Lunch", a, 3).await.unwrap();
     let (_, q) = e

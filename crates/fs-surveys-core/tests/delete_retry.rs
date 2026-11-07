@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use fs_store::traits::UnloggedObjects;
+use fs_objects::traits::UnloggedObjects;
 use fs_surveys_core::{Anonymity, Credential, Error};
 
 #[tokio::test]

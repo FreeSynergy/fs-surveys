@@ -4,7 +4,7 @@
 //! parameter here, so it cannot get weaker; earlier results stay in their stage.
 
 use fs_interfaces::Unsupported;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
 use crate::error::{Error, Result};

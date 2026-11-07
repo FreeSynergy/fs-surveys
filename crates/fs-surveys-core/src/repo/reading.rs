@@ -2,7 +2,7 @@
 //!
 //! Pattern: Strategy by anonymity level — reading never releases anything and never writes.
 
-use fs_store::{ObjectId, Query};
+use fs_objects::{ObjectId, Query};
 
 use super::consts::RESPONSE_TYPE;
 use super::handle::SurveyRepo;

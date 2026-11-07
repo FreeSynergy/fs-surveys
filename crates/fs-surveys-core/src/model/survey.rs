@@ -3,7 +3,7 @@
 //! Pattern: Adapter — the survey is one `StoredObject`; the AS2 JSON is the standard-shaped view and
 //! the `fs:` members carry the profile (DESIGN.md, "One survey is one object").
 
-use fs_store::{Envelope, ObjectId, StoredObject};
+use fs_objects::{Envelope, ObjectId, StoredObject};
 use serde_json::{Value, json};
 
 use super::kinds::{Anonymity, SurveyState};

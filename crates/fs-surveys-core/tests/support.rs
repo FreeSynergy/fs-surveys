@@ -4,7 +4,7 @@ mod common;
 
 use async_trait::async_trait;
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::{
     Anonymity, Credential, Cursor, Decisions, Designer, Error, Page, Respond, Result, Survey,
     Surveys,

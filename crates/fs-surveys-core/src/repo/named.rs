@@ -3,7 +3,7 @@
 //! Pattern: Repository — `save` keeps a draft, `submit` sets `submitted`, submitting again replaces
 //! the answers while the survey is open.
 
-use fs_store::{ObjectId, Query, StoredObject};
+use fs_objects::{ObjectId, Query, StoredObject};
 use serde_json::json;
 
 use super::consts::RESPONSE_TYPE;

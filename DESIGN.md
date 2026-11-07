@@ -31,10 +31,10 @@ AS2 JSON with `orderedItems` = AS2 `Question`s (`oneOf`/`anyOf`/`closed`) plus t
 `https://freesynergy.net/ns#`). So every edit is atomic. Questions change only in `draft`.
 
 ### Anonymity and the store
-`fs-store` logs every change with its exact time and full before/after images, sets `updated` itself, and hands the log to the hub;
+`fs-objects` logs every change with its exact time and full before/after images, sets `updated` itself, and hands the log to the hub;
 ids are UUIDv7, which contain the time. An anonymous answer stored as an ordinary object would carry all of that. So:
 
-* **Anonymous answers live in a separate store, the ballot store.** The host passes a second store, as `Arc<dyn UnloggedObjects>` (fs-store 0.3), which is never connected to the hub. Nothing anonymous goes into the main store.
+* **Anonymous answers live in a separate store, the ballot store.** The host passes a second store, as `Arc<dyn UnloggedObjects>` (fs-objects 0.3), which is never connected to the hub. Nothing anonymous goes into the main store.
 * **One box per survey.** The ballot store holds one object per survey with: `pending` ballots, released `batches` (`{stage, ballots}`) and unspent token hashes. A ballot has no person, time or id. Each submit inserts at a random position.
 * **No log, no time.** Boxes are written with `put_unlogged`: no activity exists at any moment, so a crash leaves nothing. Both envelope times are the Unix epoch. The box id contains only when the box was created.
 * **Results come in batches.** Reads only see released batches. Release happens when the survey closes or widens: if `pending` has at least `minGroup` ballots they become one shuffled batch of the current stage. Smaller rests stay and are reported as `heldBack`. Reading never releases, so comparing two readings, or closing and reopening, shows at least a batch. `minGroup` defaults to 5 and is at least 3 on anonymous surveys.
@@ -50,7 +50,7 @@ ids are UUIDv7, which contain the time. An anonymous answer stored as an ordinar
 **Stated limits, to be shown by the interface:** whoever runs the machine can read memory while a ballot or a token passes, can copy the file between two writes and see the difference, and old pages may remain until the database reuses them. Unanimous groups stay recognisable. Two conditional questions asked of nearly the same people can expose someone through the difference between their results; the batch rule cannot prevent that, so such a design needs care. An organiser who closes and reopens after each answer can watch `heldBack` rise; each reopening is on record in the activity log. On `anonymousOpen` the organiser can add own ballots and thereby isolate someone else's in a batch; only `anonymousOnce` limits who can answer, and `public` needs the protection against mass answers. Named answers and the list of invited people stay in the main store's activity log after a delete, until its retention removes them. Answers can stay held back, up to `minGroup - 1` per survey plus those the per-question rule suppresses in each batch, so more in total; a vote can stay undecided because of them, and the evaluation says how many. Provisional; the owner decides. `anonymousOnce` is therefore not called fully anonymous.
 
 ### Locks
-One lock per survey, shared by clones of the repo, from read to save. Two repos or two processes on one store are **not** safe: there is one `SurveyRepo` per store. A compare-and-swap in `fs-store` would lift that.
+One lock per survey, shared by clones of the repo, from read to save. Two repos or two processes on one store are **not** safe: there is one `SurveyRepo` per store. A compare-and-swap in `fs-objects` would lift that.
 
 ### Named answers
 One `StoredObject` of store type `SurveyResponse` per person and survey in the main store, `inReplyTo` the survey, index fields `survey`, `person`, `submitted`. `save` keeps a draft; submit sets `submitted`; submitting again replaces while the survey is open.

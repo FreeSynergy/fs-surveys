@@ -2,7 +2,7 @@
 //!
 //! Pattern: Value objects (plain data) — what `Results` hands out.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_methods::{Method, OptionResult};
 
 /// A choice (or scale value) and how often it was given.

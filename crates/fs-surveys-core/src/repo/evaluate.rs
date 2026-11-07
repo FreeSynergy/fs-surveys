@@ -3,7 +3,7 @@
 //! Pattern: Adapter — answers become `fs_surveys_methods::Ballot`s; the strategies live in that crate.
 //! Held-back answers are handed on, so a result they could tip is not called decided.
 
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_methods::{Ballot, Method, evaluate_with_held_back};
 
 use super::handle::SurveyRepo;

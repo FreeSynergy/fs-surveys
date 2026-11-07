@@ -5,8 +5,8 @@ mod common;
 use std::sync::Arc;
 
 use common::*;
-use fs_store::traits::UnloggedObjects;
-use fs_store::{OpenOptions, TursoStore};
+use fs_objects::traits::UnloggedObjects;
+use fs_objects::{OpenOptions, TursoStore};
 use fs_surveys_core::{Anonymity, Error, SurveyRepo};
 
 async fn file_store(opts: OpenOptions) -> (Arc<TursoStore>, std::path::PathBuf) {
@@ -41,7 +41,7 @@ async fn an_unencrypted_store_refuses_the_categories() {
         .unwrap();
     let err = repo.classify(s.id(), &[HEALTH.into()]).await.unwrap_err();
     assert!(
-        matches!(err, Error::Store(fs_store::Error::EncryptionRequired(_))),
+        matches!(err, Error::Store(fs_objects::Error::EncryptionRequired(_))),
         "{err}"
     );
     assert!(
@@ -115,7 +115,10 @@ async fn an_unencrypted_ballot_store_refuses_the_box_of_a_sensitive_survey() {
         .submit(s.id(), fs_surveys_core::Credential::None, choice(q, "a"))
         .await;
     assert!(
-        matches!(r, Err(Error::Store(fs_store::Error::EncryptionRequired(_)))),
+        matches!(
+            r,
+            Err(Error::Store(fs_objects::Error::EncryptionRequired(_)))
+        ),
         "{r:?}"
     );
     drop(repo);

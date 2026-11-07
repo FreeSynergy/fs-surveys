@@ -5,7 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use fs_store::{ActivityFilter, ObjectId, Query, Store, TursoStore};
+use fs_objects::{ActivityFilter, ObjectId, Query, Store, TursoStore};
 use fs_surveys_core::{
     Anonymity, Answer, AnswerValue, Credential, Error, GroupLookup, Question, QuestionKind, Result,
     Survey, SurveyRepo, TokenDelivery,
@@ -50,13 +50,13 @@ impl TokenDelivery for Failing {
     }
 }
 
-/// `GroupLookup` over the real `fs-groups-core` (built on fs-store 0.2, so ids pass as text).
+/// `GroupLookup` over the real `fs-groups-core` (built on fs-objects 0.2, so ids pass as text).
 pub struct Groups(pub fs_groups_core::GroupRepo);
 
-fn to_old(id: ObjectId) -> fs_store_02::ObjectId {
+fn to_old(id: ObjectId) -> fs_objects_02::ObjectId {
     id.to_string().parse().unwrap()
 }
-fn from_old(id: fs_store_02::ObjectId) -> ObjectId {
+fn from_old(id: fs_objects_02::ObjectId) -> ObjectId {
     id.to_string().parse().unwrap()
 }
 
@@ -84,8 +84,8 @@ pub struct Env {
 pub async fn env() -> Env {
     let main = Arc::new(TursoStore::open_in_memory().await.unwrap());
     let ballots = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let old: Arc<dyn fs_store_02::Store> =
-        Arc::new(fs_store_02::TursoStore::open_in_memory().await.unwrap());
+    let old: Arc<dyn fs_objects_02::Store> =
+        Arc::new(fs_objects_02::TursoStore::open_in_memory().await.unwrap());
     let groups = fs_groups_core::GroupRepo::new(old, ME).with_instance("example.org");
     let delivery = Arc::new(Collect::default());
     let repo = SurveyRepo::new(main.clone(), ballots.clone(), ME)
@@ -115,7 +115,7 @@ pub fn pick() -> Question {
 }
 
 /// A published survey with one single-choice question; returns the survey and the question id.
-pub async fn open_survey(e: &Env, anonymity: Anonymity) -> (Survey, fs_store::ObjectId) {
+pub async fn open_survey(e: &Env, anonymity: Anonymity) -> (Survey, fs_objects::ObjectId) {
     let s = e.repo.create("Lunch", anonymity, &[]).await.unwrap();
     let (_, q) = e
         .repo
@@ -163,7 +163,7 @@ pub async fn log_len(store: &TursoStore) -> usize {
 
 /// The raw box content of a survey.
 pub async fn box_json(e: &Env, s: &Survey) -> serde_json::Value {
-    use fs_store::traits::UnloggedObjects;
+    use fs_objects::traits::UnloggedObjects;
     e.ballots
         .read_unlogged(s.id())
         .await
@@ -183,7 +183,7 @@ pub fn count(sum: &fs_surveys_core::Summary, q: ObjectId, choice: &str) -> u32 {
 impl Env {
     /// True if the box holds no token hash (or there is no box yet).
     pub async fn ballots_empty_tokens(&self, s: &Survey) -> bool {
-        use fs_store::traits::UnloggedObjects;
+        use fs_objects::traits::UnloggedObjects;
         match self.ballots.read_unlogged(s.id()).await.unwrap() {
             None => true,
             Some(o) => o.content["tokens"].as_array().unwrap().is_empty(),

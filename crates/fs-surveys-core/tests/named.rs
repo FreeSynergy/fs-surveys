@@ -5,7 +5,7 @@ mod common;
 use std::sync::{Arc, Mutex};
 
 use common::*;
-use fs_store::{Query, Store};
+use fs_objects::{Query, Store};
 use fs_surveys_core::{
     ALL_STAGES, Anonymity, Credential, Error, SurveyChange, SurveyFeed, SurveyListener, SurveyState,
 };

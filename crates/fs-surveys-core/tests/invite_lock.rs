@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use common::*;
-use fs_store::ObjectId;
+use fs_objects::ObjectId;
 use fs_surveys_core::{Anonymity, Credential, Error, Result, SurveyRepo, TokenDelivery};
 
 /// Takes 300 ms per send, counts sends, and fails the first one when asked.

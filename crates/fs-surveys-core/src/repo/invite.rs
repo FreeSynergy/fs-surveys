@@ -5,7 +5,7 @@
 //! is recorded in the main store.
 
 use fs_interfaces::Unsupported;
-use fs_store::{ObjectId, Query, StoredObject};
+use fs_objects::{ObjectId, Query, StoredObject};
 use serde_json::json;
 
 use super::consts::INVITEE_TYPE;
