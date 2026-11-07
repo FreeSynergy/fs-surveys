@@ -1,9 +1,10 @@
 //! Which answers count: released batches on anonymous surveys, everything submitted on `named`; people
 //! and AIs apart.
 //!
-//! Pattern: Template method — `Lanes::run` is the one flow every reading goes through (summary, filter,
-//! evaluation of all ten methods, export): the same function runs once over the rows of people and once
-//! over the rows of AIs, and no function ever sees both. Reading never releases or writes anything.
+//! Pattern: Template method — `Lanes::run` is the one flow summary, filter and the evaluation of all ten
+//! methods go through: the same function runs once over the rows of people and once over the rows of AIs,
+//! and no function ever sees both. The export takes one lane with `Lanes::of`. Reading never releases
+//! or writes anything.
 
 use fs_store::{ObjectId, Query};
 

@@ -78,7 +78,7 @@ where it is, apart; it blocks new AI answers, saves, invitations and the spendin
 * An AI that is invited and allowed can hand its token to a person; the ballot counts as AI. Same limit, other direction.
 
 ### Results
-All ten methods run through `Lanes::run` in `repo/reading.rs`, which is also what summary, filter and both exports use; there is no
+All ten methods run through `Lanes::run` in `repo/reading.rs`, which is also what summary and filter use (both exports take one lane directly with `Lanes::of`, in `repo/export.rs`); there is no
 reading of answers outside it. `Summary` and `Evaluation` carry an `ai` part (same shape, never nested) next to the part for people; it is present when the survey allows AI
 or holds AI answers. `ballots`, counts, `heldBack` and winners at the top level are people only. `Results.exportAi` is a second CSV with a first
 column `participants` = `ai`; `export` is people only. A named response says whether it is an AI answer. An AI part is shown when the survey allows AIs or holds AI answers; otherwise `ai` is absent. `SurveyChange::AiAnswered` is a
@@ -134,3 +134,5 @@ Not in the contract yet, so not built: quadratic voting, delegation, clustering,
 
 ### Not built in this version
 Each answers `Unsupported` where the contract has a method, and is listed in `capabilities`: `survey.publicLink` (next step in this repo: adaptive proof of work bound to the survey, global limit, quality score, "all" beside "checked"). DDI export. No contract method yet, nothing here: `poll.date`, `poll.federate`, `template.use`, `survey.translate`.
+
+**Data from 0.1.0 (provisional).** Ballots and token hashes stored without a class count as AI, like named answers without `fs:ai`: in doubt never among people. No server existed, so no real data is affected (`tests/ai_legacy.rs`).

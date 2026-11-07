@@ -56,12 +56,8 @@ async fn box_holds_no_person_time_or_ballot_id() {
     submit_open(&e, &s, q, "b", 2).await;
     let content = box_json(&e, &s).await;
     let keys: Vec<_> = content.as_object().unwrap().keys().cloned().collect();
-    assert_eq!(
-        keys,
-        ["ai", "batches", "pending", "tokens"],
-        "the lane of AIs is its own key"
-    );
-    for ballot in content["pending"].as_array().unwrap() {
+    assert_eq!(keys, ["ai", "people"], "the lane of AIs is its own key");
+    for ballot in content["people"]["pending"].as_array().unwrap() {
         let answers = ballot.as_array().unwrap();
         assert_eq!(answers.len(), 1);
         let mut k: Vec<_> = answers[0].as_object().unwrap().keys().cloned().collect();
@@ -134,7 +130,7 @@ async fn a_release_is_never_smaller_than_min_group() {
     e.repo.close(s.id()).await.unwrap();
     let sum = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
     assert_eq!((sum.ballots, sum.held_back, sum.hidden), (3, 0, false));
-    let batches = box_json(&e, &s).await["batches"]
+    let batches = box_json(&e, &s).await["people"]["batches"]
         .as_array()
         .unwrap()
         .clone();

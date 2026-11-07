@@ -2,7 +2,8 @@
 //!
 //! Pattern: Aggregate — one value per survey, changed only through its methods. A ballot has no
 //! person, time or id; it enters at a random position; release shuffles it. The two classes have a lane
-//! each, so AI ballots never fill a batch of people, nor the other way round.
+//! each, so AI ballots never fill a batch of people, nor the other way round. A box of version 0.1.0 has
+//! no classes; what it holds is read as AI (doubt).
 
 use serde::{Deserialize, Serialize};
 
@@ -41,13 +42,38 @@ impl Lane {
     }
 }
 
-/// The box of a survey. The lane of people keeps the layout of version 0.1.0.
+/// The box of a survey.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(from = "Stored")]
 pub struct BallotBox {
-    #[serde(flatten)]
+    people: Lane,
+    ai: Lane,
+}
+
+/// The stored form. Version 0.1.0 wrote one lane at the top with no class; such ballots and token
+/// hashes are not known to be people's, so doubt counts them as AI and they are moved into that lane.
+#[derive(Deserialize)]
+struct Stored {
+    #[serde(default)]
     people: Lane,
     #[serde(default)]
     ai: Lane,
+    #[serde(flatten)]
+    legacy: Lane,
+}
+
+impl From<Stored> for BallotBox {
+    fn from(mut s: Stored) -> Self {
+        s.ai.pending.append(&mut s.legacy.pending);
+        s.ai.batches.append(&mut s.legacy.batches);
+        s.ai.tokens.append(&mut s.legacy.tokens);
+        s.ai.tokens.sort();
+        s.ai.tokens.dedup();
+        Self {
+            people: s.people,
+            ai: s.ai,
+        }
+    }
 }
 
 impl BallotBox {

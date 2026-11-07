@@ -115,7 +115,7 @@ async fn a_failed_delivery_leaves_no_usable_token() {
     );
     let content = box_json(&e, &s).await;
     assert_eq!(
-        content["tokens"].as_array().unwrap().len(),
+        content["people"]["tokens"].as_array().unwrap().len(),
         1,
         "only the delivered token has a hash"
     );

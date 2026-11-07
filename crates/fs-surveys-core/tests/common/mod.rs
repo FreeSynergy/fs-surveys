@@ -191,7 +191,7 @@ impl Env {
         use fs_store::traits::UnloggedObjects;
         match self.ballots.read_unlogged(s.id()).await.unwrap() {
             None => true,
-            Some(o) => o.content["tokens"].as_array().unwrap().is_empty(),
+            Some(o) => o.content["people"]["tokens"].as_array().unwrap().is_empty(),
         }
     }
 }
