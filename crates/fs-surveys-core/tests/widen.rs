@@ -6,7 +6,7 @@ use common::*;
 use fs_objects::ObjectId;
 use fs_surveys_core::{ALL_STAGES, Anonymity, Error, Survey};
 
-fn id(g: fs_objects_02::ObjectId) -> ObjectId {
+fn id(g: fs_objects::ObjectId) -> ObjectId {
     g.to_string().parse().unwrap()
 }
 
@@ -20,7 +20,7 @@ async fn tree(e: &Env) -> Tree {
     let root = e.groups.create("Association", "org").await.unwrap();
     let team = e.groups.create("Team", "team").await.unwrap();
     let other = e.groups.create("Elsewhere", "org").await.unwrap();
-    e.groups.add_parent(team.id, root.id).await.unwrap();
+    nest(&e.groups, team.id, root.id).await;
     Tree {
         root: id(root.id),
         team: id(team.id),

@@ -53,10 +53,10 @@ impl TokenDelivery for Failing {
 /// `GroupLookup` over the real `fs-groups-core` (built on fs-objects 0.2, so ids pass as text).
 pub struct Groups(pub fs_groups_core::GroupRepo);
 
-fn to_old(id: ObjectId) -> fs_objects_02::ObjectId {
+fn to_old(id: ObjectId) -> fs_objects::ObjectId {
     id.to_string().parse().unwrap()
 }
-fn from_old(id: fs_objects_02::ObjectId) -> ObjectId {
+fn from_old(id: fs_objects::ObjectId) -> ObjectId {
     id.to_string().parse().unwrap()
 }
 
@@ -72,6 +72,25 @@ impl GroupLookup for Groups {
     }
 }
 
+/// Everybody in these tests is a person.
+struct Humans;
+
+#[async_trait]
+impl fs_groups_core::AiMarking for Humans {
+    async fn is_ai(&self, _person: &str) -> fs_groups_core::Result<Option<bool>> {
+        Ok(Some(false))
+    }
+}
+
+/// Make `child` a child of `parent` (asked and approved by the same owner).
+pub async fn nest(groups: &fs_groups_core::GroupRepo, child: ObjectId, parent: ObjectId) {
+    let request = groups
+        .request_parent(to_old(child), to_old(parent))
+        .await
+        .unwrap();
+    groups.approve_parent(request.id).await.unwrap();
+}
+
 /// Everything a test needs.
 pub struct Env {
     pub repo: SurveyRepo,
@@ -84,9 +103,11 @@ pub struct Env {
 pub async fn env() -> Env {
     let main = Arc::new(TursoStore::open_in_memory().await.unwrap());
     let ballots = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let old: Arc<dyn fs_objects_02::Store> =
-        Arc::new(fs_objects_02::TursoStore::open_in_memory().await.unwrap());
-    let groups = fs_groups_core::GroupRepo::new(old, ME).with_instance("example.org");
+    let old: Arc<dyn fs_objects::Store> =
+        Arc::new(fs_objects::TursoStore::open_in_memory().await.unwrap());
+    let groups = fs_groups_core::GroupRepo::new(old, ME)
+        .with_instance("example.org")
+        .with_ai_marking(Arc::new(Humans));
     let delivery = Arc::new(Collect::default());
     let repo = SurveyRepo::new(main.clone(), ballots.clone(), ME)
         .with_instance("example.org")

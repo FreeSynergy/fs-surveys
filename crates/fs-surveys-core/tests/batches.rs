@@ -65,7 +65,7 @@ async fn a_lone_answer_in_a_later_batch_stays_hidden_across_stages() {
     let e = env().await;
     let team = e.groups.create("Team", "t").await.unwrap();
     let root = e.groups.create("Root", "o").await.unwrap();
-    e.groups.add_parent(team.id, root.id).await.unwrap();
+    nest(&e.groups, team.id, root.id).await;
     let (team, root): (ObjectId, ObjectId) = (
         team.id.to_string().parse().unwrap(),
         root.id.to_string().parse().unwrap(),
