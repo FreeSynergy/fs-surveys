@@ -22,6 +22,9 @@ pub enum SurveyChange {
     Deleted(ObjectId),
     /// A person submitted a named answer (survey, response). Anonymous ballots never appear.
     Answered(ObjectId, ObjectId),
+    /// An AI submitted a named answer (survey, response). Never reported as `Answered`, so a
+    /// listener that counts people does not count it.
+    AiAnswered(ObjectId, ObjectId),
 }
 
 /// Receives changes. Called on the thread that made the change: keep it short.

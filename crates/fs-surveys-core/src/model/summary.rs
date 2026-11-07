@@ -42,6 +42,9 @@ pub struct Summary {
     pub questions: Vec<QuestionSummary>,
     /// Answers not released yet.
     pub held_back: u32,
+    /// The AI part: the same figures over AI answers only. Everything above is people only. Present
+    /// when the survey allows AIs or holds AI answers; the inner part has no `ai` of its own.
+    pub ai: Option<Box<Summary>>,
 }
 
 /// One question decided by one method.
@@ -59,4 +62,6 @@ pub struct Evaluation {
     pub hidden: bool,
     /// Answers not counted because they are not released yet.
     pub held_back: u32,
+    /// The AI part: the same question over AI answers only. Everything above is people only.
+    pub ai: Option<Box<Evaluation>>,
 }

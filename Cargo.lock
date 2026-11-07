@@ -561,8 +561,8 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.21.0"
-source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.21.0#941dc3fb9d098a6d28c1f0a20799c5b1d883d4cd"
+version = "0.39.0"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.40.0#eea154286e9370522d984fa6f73ce9097fdc52c9"
 dependencies = [
  "capnp",
 ]
@@ -608,7 +608,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "fs-groups-core",
- "fs-interfaces 0.21.0",
+ "fs-interfaces 0.39.0",
  "fs-store 0.2.0",
  "fs-store 0.3.0",
  "fs-surveys-methods",

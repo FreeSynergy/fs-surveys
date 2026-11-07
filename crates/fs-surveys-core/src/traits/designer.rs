@@ -27,6 +27,22 @@ pub trait Designer: Send + Sync {
     ) -> Result<Survey> {
         not_possible("survey.create")
     }
+    /// `survey.create`: like `create`, and records `creator`, the only person who can later allow AIs.
+    async fn create_by(
+        &self,
+        _name: &str,
+        _anonymity: Anonymity,
+        _scope: &[ObjectId],
+        _creator: &str,
+    ) -> Result<Survey> {
+        not_possible("survey.create")
+    }
+    /// `survey.aiAllowed`: allow or forbid AIs in this survey. Only the creator, only while the survey
+    /// is a draft or open; allowing needs a creator who is a human by the marking. Forbidding leaves
+    /// earlier AI answers where they are, apart.
+    async fn set_ai_allowed(&self, _id: ObjectId, _by: &str, _allowed: bool) -> Result<Survey> {
+        not_possible("survey.aiAllowed")
+    }
     /// `survey.edit`, `survey.anonymity`: name, anonymity and `minGroup`; draft only.
     async fn edit(
         &self,

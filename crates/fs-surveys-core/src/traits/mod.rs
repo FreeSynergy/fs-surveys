@@ -2,6 +2,7 @@
 //!
 //! Pattern: Facade (declarations) — callers depend on these traits, never on `SurveyRepo`.
 
+mod ai;
 mod decisions;
 mod designer;
 mod feed;
@@ -10,6 +11,7 @@ mod respond;
 mod results;
 mod surveys;
 
+pub use ai::AiMarking;
 pub use decisions::Decisions;
 pub use designer::Designer;
 pub use feed::{Registry, Subscription, SurveyChange, SurveyFeed, SurveyListener};

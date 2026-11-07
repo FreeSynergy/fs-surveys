@@ -84,6 +84,8 @@ pub struct NamedResponse {
     pub answers: Vec<Answer>,
     /// False while it is a saved draft.
     pub submitted: bool,
+    /// Counted as an AI answer: kept and shown apart from the answers of people.
+    pub ai: bool,
 }
 
 /// Who was newly invited and who had been before (never a token).
@@ -93,4 +95,6 @@ pub struct InviteReport {
     pub invited: Vec<String>,
     /// Invited before; no new token.
     pub already: Vec<String>,
+    /// An AI, or not known as a human, and the survey does not allow AIs: nothing was sent.
+    pub refused: Vec<String>,
 }

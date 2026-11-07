@@ -11,7 +11,7 @@ use fs_store::{ObjectId, Store};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
 use super::backend::StoreAdapter;
-use crate::traits::{GroupLookup, Registry, TokenDelivery};
+use crate::traits::{AiMarking, GroupLookup, Registry, TokenDelivery};
 
 /// Surveys over a main store and a ballot store. Cheap to clone; clones share one box lock.
 #[derive(Clone)]
@@ -24,6 +24,7 @@ pub struct SurveyRepo {
     pub(super) page_size: usize,
     pub(super) groups: Option<Arc<dyn GroupLookup>>,
     pub(super) delivery: Option<Arc<dyn TokenDelivery>>,
+    pub(super) marking: Option<Arc<dyn AiMarking>>,
     pub(super) feed: Arc<Registry>,
     /// One lock per survey (its box and decisions of it included), from read to save.
     pub(super) inflight: super::inflight::InFlight,
@@ -48,6 +49,7 @@ impl SurveyRepo {
             page_size: 100,
             groups: None,
             delivery: None,
+            marking: None,
             feed: Arc::new(Registry::default()),
             locks: Arc::default(),
             inflight: Arc::default(),
@@ -72,6 +74,14 @@ impl SurveyRepo {
     #[must_use]
     pub fn with_delivery(mut self, delivery: Arc<dyn TokenDelivery>) -> Self {
         self.delivery = Some(delivery);
+        self
+    }
+
+    /// Who is an AI, told by the host. Without it nobody is known as a human, so every participant
+    /// counts as an AI (see `DESIGN.md`, "Doubt counts as AI").
+    #[must_use]
+    pub fn with_ai_marking(mut self, marking: Arc<dyn AiMarking>) -> Self {
+        self.marking = Some(marking);
         self
     }
 

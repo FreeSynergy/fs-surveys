@@ -34,7 +34,7 @@ mod unsupported;
 pub use error::{Error, Result};
 pub use fs_surveys_methods::{Ballot, Method, OptionResult, Tally};
 pub use model::{
-    ALL_STAGES, Anonymity, Answer, AnswerValue, Choice, ChoiceCount, Condition, ConditionOp,
+    ALL_STAGES, Anonymity, Answer, AnswerValue, Choice, ChoiceCount, Class, Condition, ConditionOp,
     Credential, Cursor, Decision, Evaluation, InviteReport, NamedResponse, OptionScore, Page,
     Question, QuestionKind, QuestionSummary, Summary, Survey, SurveyState,
 };
@@ -43,7 +43,7 @@ pub use repo::{
 };
 pub use state::{Step, transition};
 pub use traits::{
-    Decisions, Designer, GroupLookup, Registry, Respond, Results, Subscription, SurveyChange,
-    SurveyFeed, SurveyListener, Surveys, TokenDelivery,
+    AiMarking, Decisions, Designer, GroupLookup, Registry, Respond, Results, Subscription,
+    SurveyChange, SurveyFeed, SurveyListener, Surveys, TokenDelivery,
 };
 pub use unsupported::not_possible;

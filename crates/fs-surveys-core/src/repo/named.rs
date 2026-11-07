@@ -22,6 +22,11 @@ fn read(o: &StoredObject) -> Option<NamedResponse> {
         person: c.get("fs:person")?.as_str()?.into(),
         answers: serde_json::from_value(c.get("fs:answers")?.clone()).ok()?,
         submitted: c.get("fs:submitted")?.as_bool()?,
+        // No flag, no human: an object without it counts as an AI answer.
+        ai: c
+            .get("fs:ai")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true),
     })
 }
 

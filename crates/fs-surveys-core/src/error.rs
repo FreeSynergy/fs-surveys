@@ -40,6 +40,12 @@ pub enum Error {
         /// The step tried.
         step: &'static str,
     },
+    /// The participant is an AI, or not known as a human, and the survey does not allow AIs.
+    #[error("this survey does not allow AIs")]
+    AiNotAllowed,
+    /// Only the creator of a survey can change who may take part.
+    #[error("only the creator of the survey can do this")]
+    NotCreator,
     /// The token is spent or unknown; the two cannot be told apart on purpose.
     #[error("token is not valid")]
     InvalidToken,

@@ -85,6 +85,7 @@ impl SurveyRepo {
             note: String::new(),
             hidden: survey.is_anonymous() && ballots.len() < usize::from(survey.min_group),
             held_back,
+            ai: None,
         };
         if out.hidden {
             "too few answers to show".clone_into(&mut out.note);

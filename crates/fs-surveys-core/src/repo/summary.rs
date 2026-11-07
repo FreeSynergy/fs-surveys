@@ -24,6 +24,7 @@ pub(super) fn totals(s: &Survey, rows: &[Row], held_back: u32) -> Result<Summary
         hidden: s.is_anonymous() && rows.len() < usize::from(s.min_group),
         questions,
         held_back,
+        ai: None,
     })
 }
 

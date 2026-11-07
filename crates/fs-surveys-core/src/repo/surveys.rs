@@ -36,6 +36,8 @@ impl SurveyRepo {
             scope: scope.to_vec(),
             stage: 0,
             min_group: DEFAULT_MIN_GROUP,
+            ai_allowed: false,
+            creator: None,
         };
         check_min_group(anonymity, s.min_group)?;
         self.objects.put(s.to_object(), &self.actor).await?;

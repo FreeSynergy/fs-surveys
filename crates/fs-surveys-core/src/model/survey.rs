@@ -35,6 +35,10 @@ pub struct Survey {
     pub stage: u16,
     /// Smallest batch of anonymous results.
     pub min_group: u16,
+    /// An AI may answer only if the creator allowed it for this survey.
+    pub ai_allowed: bool,
+    /// The person who made the survey; only they can change `ai_allowed`. None: nobody can allow AIs.
+    pub creator: Option<String>,
 }
 
 impl Survey {
@@ -68,6 +72,7 @@ impl Survey {
             "totalItems": items.len(), "orderedItems": items,
             "fs:state": self.state, "fs:anonymity": self.anonymity,
             "fs:scope": self.scope, "fs:stage": self.stage, "fs:minGroup": self.min_group,
+            "fs:aiAllowed": self.ai_allowed, "fs:creator": self.creator,
         });
         if closed {
             v["closed"] = true.into();
@@ -97,6 +102,15 @@ impl Survey {
             scope: serde_json::from_value(c.get("fs:scope")?.clone()).ok()?,
             stage: u16::try_from(c.get("fs:stage")?.as_u64()?).ok()?,
             min_group: u16::try_from(c.get("fs:minGroup")?.as_u64()?).ok()?,
+            // Surveys of 0.1.0 have neither: no AI, no creator.
+            ai_allowed: c
+                .get("fs:aiAllowed")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            creator: c
+                .get("fs:creator")
+                .and_then(Value::as_str)
+                .map(String::from),
         })
     }
 }

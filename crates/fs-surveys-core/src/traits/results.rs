@@ -1,6 +1,6 @@
 //! The [`Results`] contract: summary, evaluation, export, filter.
 //!
-//! Pattern: Repository (interface) — every method is a read, so all are required.
+//! Pattern: Repository (interface) — reads are required; the AI export defaults to `Unsupported`.
 
 use async_trait::async_trait;
 use fs_store::ObjectId;
@@ -8,6 +8,7 @@ use fs_surveys_methods::Method;
 
 use crate::error::Result;
 use crate::model::{Evaluation, Summary};
+use crate::unsupported::not_possible;
 
 /// Reading results. `stage` 0xFFFF = all stages. Interface status: draft (ADR 0045).
 #[async_trait]
@@ -24,6 +25,11 @@ pub trait Results: Send + Sync {
     ) -> Result<Evaluation>;
     /// `result.export`: `text/csv` only; `named` has one row per response, anonymous totals only.
     async fn export(&self, id: ObjectId, media_type: &str) -> Result<Vec<u8>>;
+    /// `result.export` of the AI answers only, as their own CSV (first column `participants` = `ai`).
+    /// `export` never holds them.
+    async fn export_ai(&self, _id: ObjectId, _media_type: &str) -> Result<Vec<u8>> {
+        not_possible("result.export")
+    }
     /// `result.filter`: `named` only; totals of the responses that chose `choice` in `question`.
     async fn filter(
         &self,
