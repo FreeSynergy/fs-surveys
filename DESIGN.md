@@ -23,6 +23,56 @@ Version 0.1.0. Contract methods are the traits; no capnp server and no GUI.
 
 Checked by an independent reviewer over three rounds before the tag; two rounds found serious errors, and the last found nothing serious.
 
+## AI participants (thread 5, item 7; owner 2026-11-07; all provisional)
+
+Rule: an AI takes part in a survey only if its creator allows it **for that survey** (default: no). Its answers are **always counted and
+shown apart** from the answers of people: in every total, summary, evaluation (all ten methods), CSV export, interim result and event. Whether
+a participant is an AI is told by the **marking** the host injects, never by what the participant says about itself. No MCP tool for this.
+
+### Pattern map
+
+| Concern | Pattern (`coding.md` §2) | Why |
+|---|---|---|
+| Who is an AI: `AiMarking` | Strategy (injected, like `fs_groups_core::AiMarking`) | This crate does not depend on fs-people; the host wires the answer (for example to the role book). `Some(false)` = known human; `Some(true)` = AI; `None` = no answer. |
+| May this class take part: `Participation` | Specification | A pure predicate over (survey, class), testable alone; submit, save, invite and token spending all ask the same one, so no path has its own copy of the rule. |
+| Counting apart: `Lanes` in reading | Template method | One flow (collect, summarise, evaluate, export) run once for people and once for AIs; the class decides which rows go in. A method cannot opt out, because the flow lives in one place and the ten strategies only see rows of one class. |
+| Class of a participant: `Class` | Value object | `Human` or `Ai`, decided once at submit (or at invite for tokens) and kept with the answer. |
+
+Names not in the table are not used. Decorator was considered for the separate evaluation and rejected: nothing wraps the same trait here;
+the separation needs a second pass over the rows, which is the Template method.
+
+### Doubt counts as AI (decision, provisional)
+A participant is a **human only when the marking answers `Some(false)` for an identified person**. No marking configured, no answer (`None`),
+no identity (`Credential::None`), `Some(true)`: all are **AI**. An error of the marking is passed on and never counts as human. Reason: the
+two possible mistakes are not equal. Counting an AI as a person falsifies the result everybody reads; refusing a person who the host could
+not vouch for costs one retry. This follows `fs-groups` (`AiMarking`: no answer is treated like "agent").
+
+### Anonymous surveys
+* `anonymousOnce`: the class is fixed **when the token is issued**, from the marking of the invited person, and kept as a lane of the token
+  hash in the box (not linked to the person). Spending a token puts the ballot into the lane of the token. An AI that is not allowed gets no
+  token (`InviteReport.refused`). **Limit, stated:** a person can hand their token to an AI. The core cannot see that; the ballot counts as the
+  class of the person who was invited. An invited AI can likewise hand its token to a person. The same holds for any poll with tokens.
+* `anonymousOpen`: there is no identity, so nothing to ask the marking about. The host passes the authenticated person in `Credential::Person`;
+  the core uses it **only to ask the marking** and stores nothing. `Credential::None` is "no identity", so doubt, so AI. **This changes the
+  behaviour of 0.1.0**, where `none` was the credential of `anonymousOpen`. Open question to the owner: is that what is wanted, or should
+  `anonymousOpen` stay without any AI guard? Provisional answer: guard, because "never mixed" is the stronger rule.
+* `public`: unchanged, `Unsupported` (`survey.publicLink`). When it is built it needs the same decision.
+* Batches: each class has its own pending list, batches and `minGroup` rule, so AI ballots never pad a batch of people (nor the other way round).
+* **The core does not authenticate.** `person` and `by` come from the host, as everywhere in this crate. If the host lets a caller name any
+  person, the marking of that person is used. A caller who can name a human can answer as a human.
+
+### Permission
+`aiAllowed` and `creator` are fields of the survey. Only `creator` can change `aiAllowed` (`Designer.setAiAllowed(id, by, allowed)`), and only
+while the survey is a draft or open, and **granting needs a creator who is a human by the marking** (an AI cannot allow AIs). A survey made
+without `createBy` has no creator, so AI participation can never be allowed for it. Withdrawing the permission leaves every earlier AI answer
+where it is, apart; it blocks new AI answers, saves, invitations and the spending of tokens issued to AIs (a refused spend keeps the token).
+
+### Results
+`Summary` and `Evaluation` carry an `ai` part (same shape, never nested) next to the part for people; it is present when the survey allows AI
+or holds AI answers. `ballots`, counts, `heldBack` and winners at the top level are people only. `Results.exportAi` is a second CSV with a first
+column `participants` = `ai`; `export` is people only. A named response says whether it is an AI answer. `SurveyChange::AiAnswered` is a
+separate event; `Answered` is people only.
+
 ## Decisions (the owner may change them; all provisional)
 
 ### One survey is one object
