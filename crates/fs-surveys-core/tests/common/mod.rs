@@ -4,6 +4,8 @@
 
 use std::sync::{Arc, Mutex};
 
+pub mod ai;
+
 use async_trait::async_trait;
 use fs_store::{ActivityFilter, ObjectId, Query, Store, TursoStore};
 use fs_surveys_core::{
@@ -91,7 +93,8 @@ pub async fn env() -> Env {
     let repo = SurveyRepo::new(main.clone(), ballots.clone(), ME)
         .with_instance("example.org")
         .with_groups(Arc::new(Groups(groups.clone())))
-        .with_delivery(delivery.clone());
+        .with_delivery(delivery.clone())
+        .with_ai_marking(Arc::new(ai::Marks));
     Env {
         repo,
         main,
