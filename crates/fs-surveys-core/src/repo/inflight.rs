@@ -51,13 +51,21 @@ pub(super) fn note_arrival(set: &Arrivals, survey: ObjectId, limit: usize) -> bo
     let now = std::time::Instant::now();
     let window = std::time::Duration::from_secs(60);
     let mut all = set.lock().unwrap_or_else(PoisonError::into_inner);
+    // Forget what is older than a minute, in every survey, so the map stays small.
+    all.retain(|_, marks| {
+        while marks
+            .front()
+            .is_some_and(|t| now.saturating_duration_since(*t) > window)
+        {
+            marks.pop_front();
+        }
+        !marks.is_empty()
+    });
     let marks = all.entry(survey).or_default();
-    while marks
-        .front()
-        .is_some_and(|t| now.saturating_duration_since(*t) > window)
-    {
+    marks.push_back(now);
+    // Counting past the limit is not needed, so a flood cannot grow the list.
+    while marks.len() > limit + 1 {
         marks.pop_front();
     }
-    marks.push_back(now);
     marks.len() > limit
 }

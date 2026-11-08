@@ -75,6 +75,28 @@ fn totals_csv(s: &Survey, summary: &crate::model::Summary, class: Class) -> Vec<
             out.row(&[name, "mean".into(), m.to_string()]);
         }
     }
+    // The patterns of an open survey are part of the result, so they travel with it.
+    if let Some(p) = summary.patterns {
+        let g = p.signals;
+        for (name, n) in [
+            ("pattern: looked at", g.ballots),
+            ("pattern: too fast", g.too_fast),
+            ("pattern: hidden field filled", g.honeypot),
+            ("pattern: same choice in every row", g.straight_line),
+            ("pattern: burst", g.burst),
+            ("pattern: no timing", g.no_timing),
+            ("pattern: same free text", p.same_text),
+        ] {
+            out.row(&[name.into(), String::new(), n.to_string()]);
+        }
+    }
+    for c in &summary.voluntary {
+        out.row(&[
+            "voluntary".into(),
+            text_cell(&c.choice),
+            c.count.to_string(),
+        ]);
+    }
     out.finish()
 }
 

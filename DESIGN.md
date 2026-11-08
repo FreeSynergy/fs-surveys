@@ -67,8 +67,14 @@ not vouch for costs one retry. This follows `fs-groups` (`AiMarking`: no answer 
   per lane**, kept with the pending ballots and released with their batch, never one flag per ballot, so no flag can be tied to an answer
   and no arrival time is written. `Summary.patterns` shows them beside the figures; `ballots` always holds every released answer.
   Limit: patterns are hints. A careful bot passes all of them, and a fast person trips some.
-* **Voluntary details after the answers** (`add_voluntary`): `key = value` pairs (age group, role), kept in a list of the box with no link to
-  a ballot, inserted at a random position, shown in `Summary.voluntary` only when at least `minGroup` people gave details.
+* **Voluntary details after the answers** (`add_voluntary`): `key = value` pairs (age group, role), at most five per call, key up to 40 and
+  value up to 100 characters (longer ones are dropped, so a name cannot be written into the result), at most 10 000 sets per survey. They
+  are kept in a list of the box with no link to a ballot, inserted at a random position, and shown in `Summary.voluntary` and the CSV
+  **only after the survey closed** and when at least `minGroup` sets were given; while it is open the list would change with every
+  arrival. Stated limit: on an open survey anyone can add sets, so the count is of sets, not of people.
+  The patterns count only open claims that were looked at (`signals.ballots`); a ballot of a host-vouched person or from an older box adds
+  none, so `signals.ballots` can be smaller than `ballots`. The burst counter is a hint: on a busy survey with more than ten answers a minute
+  every further answer counts as part of a burst.
 * `public`: unchanged, `Unsupported` (`survey.publicLink`). When it is built it needs the same decision.
 * Batches: each class has its own pending list, batches and `minGroup` rule, so AI ballots never pad a batch of people (nor the other way round).
 * **The core does not authenticate.** `person` and `by` come from the host, as everywhere in this crate. If the host lets a caller name any

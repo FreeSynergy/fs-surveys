@@ -210,9 +210,39 @@ async fn voluntary_details_show_only_in_groups() {
     for v in ["30-39", "30-39"] {
         e.repo.add_voluntary(s.id(), age(v)).await.unwrap();
     }
+    e.repo.close(s.id()).await.unwrap();
     let r = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
     assert!(r.voluntary.is_empty(), "two are below minGroup 3");
-    e.repo.add_voluntary(s.id(), age("20-29")).await.unwrap();
+}
+
+#[tokio::test]
+async fn voluntary_details_wait_for_the_close_and_have_limits() {
+    let e = env().await;
+    let (s, qs) = open(&e, false).await;
+    e.repo
+        .submit(s.id(), meta(false, 90_000), row(&qs, ["a", "b", "c"], "x"))
+        .await
+        .unwrap();
+    let age = |v: &str| {
+        vec![Voluntary {
+            key: "age".into(),
+            value: v.into(),
+        }]
+    };
+    for v in ["30-39", "30-39", "20-29"] {
+        e.repo.add_voluntary(s.id(), age(v)).await.unwrap();
+    }
+    // Too long to be a detail: dropped, so a name cannot be written into the result.
+    e.repo
+        .add_voluntary(s.id(), age(&"x".repeat(101)))
+        .await
+        .unwrap();
+    let r = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
+    assert!(
+        r.voluntary.is_empty(),
+        "not while the survey is open: it would show the arrivals"
+    );
+    e.repo.close(s.id()).await.unwrap();
     let r = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
     let got: Vec<_> = r
         .voluntary
@@ -220,4 +250,6 @@ async fn voluntary_details_show_only_in_groups() {
         .map(|c| (c.choice.as_str(), c.count))
         .collect();
     assert_eq!(got, [("age=20-29", 1), ("age=30-39", 2)]);
+    let again = e.repo.add_voluntary(s.id(), age("40-49")).await;
+    assert!(matches!(again, Err(Error::Refused(_))), "{again:?}");
 }

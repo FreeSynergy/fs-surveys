@@ -70,13 +70,14 @@ impl Lanes {
     }
 }
 
-/// `key=value` with how often. Shown only when at least `minGroup` details were given, or the number
-/// of details would show when people answered.
+/// `key=value` with how often. Shown only after the survey closed and when at least `minGroup` sets
+/// of details were given.
 fn voluntary_counts(s: &Survey, b: &crate::ballots::BallotBox) -> Vec<ChoiceCount> {
-    let all: Vec<_> = b.voluntary().iter().flatten().collect();
-    if b.voluntary().len() < usize::from(s.min_group) {
+    // Not while the survey is open: the list would change with each arrival and show the order.
+    if s.state == SurveyState::Open || b.voluntary().len() < usize::from(s.min_group) {
         return vec![];
     }
+    let all: Vec<_> = b.voluntary().iter().flatten().collect();
     let mut by: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
     for d in all {
         *by.entry(format!("{}={}", d.key, d.value)).or_default() += 1;

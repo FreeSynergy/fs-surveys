@@ -14,6 +14,12 @@ use crate::error::{Error, Result};
 use crate::model::{Anonymity, Answer, Class, Credential, OpenMeta, Survey, SurveyState};
 use crate::tokens::hash_token;
 
+/// Limits of voluntary details: pairs per call, characters, and sets per survey.
+const MAX_DETAILS: usize = 5;
+const MAX_KEY: usize = 40;
+const MAX_VALUE: usize = 100;
+const MAX_SETS: usize = 10_000;
+
 fn wrong(needs: &str) -> Error {
     Error::Refused(format!("this survey needs a {needs} credential"))
 }
@@ -128,15 +134,23 @@ impl SurveyRepo {
         }
         let details: Vec<_> = details
             .into_iter()
+            .take(MAX_DETAILS)
             .map(|d| crate::model::Voluntary {
                 key: d.key.trim().to_string(),
                 value: d.value.trim().to_string(),
             })
             .filter(|d| !d.key.is_empty() && !d.value.is_empty())
+            .filter(|d| d.key.chars().count() <= MAX_KEY && d.value.chars().count() <= MAX_VALUE)
             .collect();
         if details.is_empty() {
             return Ok(());
         }
-        self.edit_box(&s, |b| b.add_voluntary(details)).await
+        self.edit_box(&s, |b| {
+            if b.voluntary().len() >= MAX_SETS {
+                return Err(Error::Refused("enough voluntary details were given".into()));
+            }
+            b.add_voluntary(details)
+        })
+        .await
     }
 }
