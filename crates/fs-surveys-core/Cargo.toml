@@ -8,8 +8,8 @@ rust-version.workspace = true
 
 [dependencies]
 fs-surveys-methods = { path = "../fs-surveys-methods" }
-fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.5.0" }
-fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.40.0" }
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.1" }
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.1" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
@@ -23,6 +23,6 @@ getrandom = "0.3"
 sha2 = "0.10"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 tokio = { version = "1", features = ["full"] }
-fs-groups-core = { git = "https://github.com/FreeSynergy/fs-groups", tag = "v0.1.1" }
+fs-groups-core = { git = "https://github.com/FreeSynergy/fs-groups", tag = "v0.0.1" }
 # fs-groups-core v0.1.1 is built on fs-objects v0.2.0; the tests talk to it through ids as text.
-fs-objects-02 = { package = "fs-objects", git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.5.0" }
+fs-objects-02 = { package = "fs-objects", git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.1" }
