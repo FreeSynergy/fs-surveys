@@ -7,7 +7,6 @@ use common::ai::*;
 use common::*;
 use fs_objects::ObjectId;
 use fs_surveys_core::Designer as _;
-use fs_surveys_core::Results as _;
 use fs_surveys_core::{
     ALL_STAGES, Anonymity, Answer, AnswerValue, Credential, Error, OpenMeta, Question,
     QuestionKind, Voluntary,
