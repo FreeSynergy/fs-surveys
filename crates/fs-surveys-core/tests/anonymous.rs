@@ -68,7 +68,7 @@ async fn box_holds_no_person_time_or_ballot_id() {
             "a ballot is its answers and nothing else"
         );
     }
-    let all = raw(&e.ballots).await;
+    let all = raw_box(&e, &s).await;
     assert!(!all.contains("people/") && !all.contains(ME));
     let year = chrono::Utc::now().format("%Y-").to_string();
     assert!(

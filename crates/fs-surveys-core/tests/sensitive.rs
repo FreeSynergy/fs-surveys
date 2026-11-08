@@ -65,8 +65,7 @@ async fn opted_out_the_survey_and_the_box_carry_the_categories() {
     };
     let (main, path) = file_store(opts).await;
     let ballots = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let repo = SurveyRepo::new(main, ballots.clone(), ME)
-        .with_ai_marking(std::sync::Arc::new(common::ai::Marks));
+    let repo = SurveyRepo::new(main, ballots.clone(), ME);
     let s = repo
         .create("Health check", Anonymity::AnonymousOpen, &[])
         .await
@@ -75,7 +74,9 @@ async fn opted_out_the_survey_and_the_box_carry_the_categories() {
     let s = repo.classify(s.id(), &[HEALTH.into()]).await.unwrap();
     assert_eq!(s.envelope.sensitive, [HEALTH]);
     let s = repo.publish(s.id()).await.unwrap();
-    repo.submit(s.id(), human(), choice(q, "a")).await.unwrap();
+    repo.submit(s.id(), fs_surveys_core::Credential::None, choice(q, "a"))
+        .await
+        .unwrap();
     let b = ballots.read_unlogged(s.id()).await.unwrap().unwrap();
     assert_eq!(
         b.envelope.sensitive,
@@ -100,8 +101,7 @@ async fn opted_out_the_survey_and_the_box_carry_the_categories() {
 async fn an_unencrypted_ballot_store_refuses_the_box_of_a_sensitive_survey() {
     let main = Arc::new(TursoStore::open_in_memory().await.unwrap());
     let (ballots, path) = file_store(OpenOptions::default()).await;
-    let repo =
-        SurveyRepo::new(main, ballots, ME).with_ai_marking(std::sync::Arc::new(common::ai::Marks));
+    let repo = SurveyRepo::new(main, ballots, ME);
     let s = repo
         .create("Faith", Anonymity::AnonymousOpen, &[])
         .await
@@ -111,9 +111,14 @@ async fn an_unencrypted_ballot_store_refuses_the_box_of_a_sensitive_survey() {
         .await
         .unwrap();
     let s = repo.publish(s.id()).await.unwrap();
-    let r = repo.submit(s.id(), human(), choice(q, "a")).await;
+    let r = repo
+        .submit(s.id(), fs_surveys_core::Credential::None, choice(q, "a"))
+        .await;
     assert!(
-        matches!(r, Err(Error::Store(fs_objects::Error::EncryptionRequired(_)))),
+        matches!(
+            r,
+            Err(Error::Store(fs_objects::Error::EncryptionRequired(_)))
+        ),
         "{r:?}"
     );
     drop(repo);

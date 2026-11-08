@@ -4,8 +4,6 @@
 
 use std::sync::{Arc, Mutex};
 
-pub mod ai;
-
 use async_trait::async_trait;
 use fs_objects::{ActivityFilter, ObjectId, Query, Store, TursoStore};
 use fs_surveys_core::{
@@ -55,10 +53,10 @@ impl TokenDelivery for Failing {
 /// `GroupLookup` over the real `fs-groups-core` (built on fs-objects 0.2, so ids pass as text).
 pub struct Groups(pub fs_groups_core::GroupRepo);
 
-fn to_old(id: ObjectId) -> fs_objects_02::ObjectId {
+fn to_old(id: ObjectId) -> fs_objects::ObjectId {
     id.to_string().parse().unwrap()
 }
-fn from_old(id: fs_objects_02::ObjectId) -> ObjectId {
+fn from_old(id: fs_objects::ObjectId) -> ObjectId {
     id.to_string().parse().unwrap()
 }
 
@@ -74,6 +72,25 @@ impl GroupLookup for Groups {
     }
 }
 
+/// Everybody in these tests is a person.
+struct Humans;
+
+#[async_trait]
+impl fs_groups_core::AiMarking for Humans {
+    async fn is_ai(&self, _person: &str) -> fs_groups_core::Result<Option<bool>> {
+        Ok(Some(false))
+    }
+}
+
+/// Make `child` a child of `parent` (asked and approved by the same owner).
+pub async fn nest(groups: &fs_groups_core::GroupRepo, child: ObjectId, parent: ObjectId) {
+    let request = groups
+        .request_parent(to_old(child), to_old(parent))
+        .await
+        .unwrap();
+    groups.approve_parent(request.id).await.unwrap();
+}
+
 /// Everything a test needs.
 pub struct Env {
     pub repo: SurveyRepo,
@@ -86,15 +103,16 @@ pub struct Env {
 pub async fn env() -> Env {
     let main = Arc::new(TursoStore::open_in_memory().await.unwrap());
     let ballots = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let old: Arc<dyn fs_objects_02::Store> =
-        Arc::new(fs_objects_02::TursoStore::open_in_memory().await.unwrap());
-    let groups = fs_groups_core::GroupRepo::new(old, ME).with_instance("example.org");
+    let old: Arc<dyn fs_objects::Store> =
+        Arc::new(fs_objects::TursoStore::open_in_memory().await.unwrap());
+    let groups = fs_groups_core::GroupRepo::new(old, ME)
+        .with_instance("example.org")
+        .with_ai_marking(Arc::new(Humans));
     let delivery = Arc::new(Collect::default());
     let repo = SurveyRepo::new(main.clone(), ballots.clone(), ME)
         .with_instance("example.org")
         .with_groups(Arc::new(Groups(groups.clone())))
-        .with_delivery(delivery.clone())
-        .with_ai_marking(Arc::new(ai::Marks));
+        .with_delivery(delivery.clone());
     Env {
         repo,
         main,
@@ -102,11 +120,6 @@ pub async fn env() -> Env {
         delivery,
         groups,
     }
-}
-
-/// The credential of a person on an `anonymousOpen` survey: only used to ask the marking.
-pub fn human() -> Credential {
-    Credential::Person(person("h"))
 }
 
 pub fn person(n: &str) -> String {
@@ -143,7 +156,10 @@ pub fn choice(q: ObjectId, c: &str) -> Vec<Answer> {
 /// `n` anonymous submits of `c`.
 pub async fn submit_open(e: &Env, s: &Survey, q: ObjectId, c: &str, n: usize) {
     for _ in 0..n {
-        e.repo.submit(s.id(), human(), choice(q, c)).await.unwrap();
+        e.repo
+            .submit(s.id(), Credential::None, choice(q, c))
+            .await
+            .unwrap();
     }
 }
 
@@ -154,6 +170,22 @@ pub async fn raw(store: &TursoStore) -> String {
     format!(
         "{}\n{}",
         serde_json::to_string(&objects).unwrap(),
+        serde_json::to_string(&log).unwrap()
+    )
+}
+
+/// The same for the ballot store: its objects are unlogged, so they are read by id (the box of `s`).
+pub async fn raw_box(e: &Env, s: &Survey) -> String {
+    use fs_objects::traits::UnloggedObjects;
+    let whole = e.ballots.read_unlogged(s.id()).await.unwrap();
+    let log = e
+        .ballots
+        .activities(&ActivityFilter::default())
+        .await
+        .unwrap();
+    format!(
+        "{}\n{}",
+        serde_json::to_string(&whole).unwrap(),
         serde_json::to_string(&log).unwrap()
     )
 }
@@ -191,7 +223,7 @@ impl Env {
         use fs_objects::traits::UnloggedObjects;
         match self.ballots.read_unlogged(s.id()).await.unwrap() {
             None => true,
-            Some(o) => o.content["people"]["tokens"].as_array().unwrap().is_empty(),
+            Some(o) => o.content["tokens"].as_array().unwrap().is_empty(),
         }
     }
 }

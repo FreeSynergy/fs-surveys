@@ -139,10 +139,10 @@ async fn delete_leaves_nothing_behind() {
         )
         .await
         .unwrap();
-    assert!(e.ballots.query(&Query::new()).await.unwrap().len() == 1);
+    assert!(e.ballots.count(&Query::new()).await.unwrap() == 1);
     e.repo.delete(a.id()).await.unwrap();
     assert!(
-        e.ballots.query(&Query::new()).await.unwrap().is_empty(),
+        e.ballots.count(&Query::new()).await.unwrap() == 0,
         "the box is gone"
     );
     assert!(e.main.query(&Query::new()).await.unwrap().is_empty());
