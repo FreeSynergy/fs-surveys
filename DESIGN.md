@@ -1,12 +1,12 @@
 # fs-surveys – Design
 
 `fs-surveys` is the surveys program of FreeSynergy. This repo holds the **program core**, no GUI. Contract: `surveys.capnp` in
-`fs-interfaces` v0.40.0 (draft, provisional: no survey frontends are analysed yet). Program docs:
+`fs-interfaces` v0.46.0 (draft, provisional: no survey frontends are analysed yet). Program docs:
 `fs-documentation/docs/en/programs/apps/surveys/`.
 
 ## State
 
-Version 0.1.0 plus branch `ai-participants` (not tagged, not merged). Contract methods are the traits; no capnp server and no GUI.
+Version 0.3.0 (AI participants and open surveys). Contract methods are the traits; no capnp server and no GUI.
 
 | Area | State |
 |---|---|
@@ -23,7 +23,7 @@ Version 0.1.0 plus branch `ai-participants` (not tagged, not merged). Contract m
 | AI participants on `public` surveys | `Unsupported` with the rest of `public` |
 | AI guard against a token handed to an AI, and against a caller who names someone else | **not possible**, stated limits below |
 | capnp server | not built; thread 3 |
-| Tests | 133, real stores |
+| Tests | see `cargo test`, real stores |
 
 Checked by an independent reviewer over three rounds before the tag; two rounds found serious errors, and the last found nothing serious.
 

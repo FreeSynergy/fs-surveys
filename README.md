@@ -4,6 +4,6 @@ FreeSynergy program for surveys, polls and group decisions: anonymity where it i
 
 * `crates/fs-surveys-methods`: the decision methods, pure code.
 * `crates/fs-surveys-core`: the program core (no GUI, no capnp server yet). See `DESIGN.md`.
-* The contract is `surveys.capnp` in [fs-interfaces](https://github.com/FreeSynergy/fs-interfaces) (tag v0.21.0).
+* The contract is `surveys.capnp` in [fs-interfaces](https://github.com/FreeSynergy/fs-interfaces) (tag v0.46.0).
 
 Licence: MIT OR Apache-2.0.
