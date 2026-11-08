@@ -55,8 +55,8 @@ fn all_empty_ballots_decide_nothing() {
         &[ranking(&[]), ranking(&[])],
     )
     .unwrap();
-    assert!(t.winners.is_empty());
-    assert!(!t.note.is_empty());
+    assert_eq!(t.winners, [] as [std::string::String; 0]);
+    assert_ne!(t.note, "");
 }
 
 #[test]

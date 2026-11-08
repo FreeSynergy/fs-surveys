@@ -33,7 +33,7 @@ fn schulze_winners_rank_first() {
     let ch = ss(&["W", "A", "B", "C"]);
     let b = [rk(&["W", "A", "B", "C"]), rk(&["A", "B", "C", "W"])];
     let t = evaluate(&Method::Schulze, &ch, &b).unwrap();
-    assert!(!t.winners.is_empty());
+    assert_ne!(t.winners, [] as [std::string::String; 0]);
     for o in &t.options {
         assert_eq!(
             o.rank == 1,

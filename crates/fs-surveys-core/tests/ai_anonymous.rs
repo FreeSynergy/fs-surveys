@@ -131,6 +131,7 @@ async fn anonymous_open_asks_the_marking_and_stores_nobody() {
     assert!(!raw(&e.main).await.contains(&ada), "nor in the main store");
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn a_withdrawn_permission_blocks_ai_tokens_without_spending_them() {
     let e = env().await;

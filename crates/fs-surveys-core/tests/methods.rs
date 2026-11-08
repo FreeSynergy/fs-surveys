@@ -8,6 +8,7 @@ use fs_surveys_core::{
     ALL_STAGES, Anonymity, Answer, AnswerValue, Credential, Error, Method, Question, QuestionKind,
 };
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 async fn ranked(e: &Env) -> (fs_surveys_core::Survey, ObjectId) {
     let s = e.repo.create("Venue", Anonymity::Named, &[]).await.unwrap();
     let q = Question::new(QuestionKind::Ranking, "Rank").with_choices(&[
@@ -40,6 +41,7 @@ async fn ranked(e: &Env) -> (fs_surveys_core::Survey, ObjectId) {
     (s, q)
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn the_same_ballots_run_under_several_methods() {
     let e = env().await;
@@ -97,7 +99,7 @@ async fn single_choice_under_plurality_majority_and_supermajority() {
     }
     assert_eq!(win(&e, s.id(), q, Method::Plurality).await, ["a"]);
     assert_eq!(win(&e, s.id(), q, Method::Majority).await, ["a"]);
-    assert!(
+    assert_eq!(
         win(
             &e,
             s.id(),
@@ -106,8 +108,8 @@ async fn single_choice_under_plurality_majority_and_supermajority() {
                 threshold_percent: 75
             }
         )
-        .await
-        .is_empty()
+        .await,
+        [] as [std::string::String; 0]
     );
 }
 

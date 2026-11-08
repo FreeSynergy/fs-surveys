@@ -26,7 +26,7 @@ fn consent_all_may_pass() {
 fn consent_all_objected_has_no_winner() {
     let b = [scores(&[("a", 1)]), scores(&[("b", 1)])];
     let t = evaluate(&Method::Consent, &ids(&["a", "b"]), &b).unwrap();
-    assert!(t.winners.is_empty());
+    assert_eq!(t.winners, [] as [std::string::String; 0]);
     assert!(t.note.contains("objection"));
 }
 

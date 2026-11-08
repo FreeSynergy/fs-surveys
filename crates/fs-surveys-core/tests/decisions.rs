@@ -6,6 +6,7 @@ use common::*;
 use fs_objects::ObjectId;
 use fs_surveys_core::{ALL_STAGES, Anonymity, Error, Method};
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn decisions_link_to_tasks_and_back() {
     let e = env().await;
@@ -55,7 +56,10 @@ async fn decisions_link_to_tasks_and_back() {
     assert_eq!(e.repo.of_task(t1).await.unwrap()[0].id(), d.id());
     let unlinked = e.repo.unlink_task(d.id(), t1).await.unwrap();
     assert_eq!(unlinked.tasks, [t2]);
-    assert!(e.repo.of_task(t1).await.unwrap().is_empty());
+    assert_eq!(
+        e.repo.of_task(t1).await.unwrap(),
+        [] as [fs_surveys_core::Decision; 0]
+    );
     assert_eq!(e.repo.of_task(t2).await.unwrap().len(), 1);
     assert_eq!(
         e.repo

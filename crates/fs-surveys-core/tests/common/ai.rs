@@ -76,6 +76,7 @@ pub async fn say(e: &Env, s: &Survey, who: &str, answers: Vec<Answer>) -> Result
 }
 
 /// `n` named answers of `c` by people called `{prefix}-0..`; bots when `ai`.
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 pub async fn many(e: &Env, s: &Survey, q: ObjectId, c: &str, n: usize, ai: bool) {
     for i in 0..n {
         let who = if ai {

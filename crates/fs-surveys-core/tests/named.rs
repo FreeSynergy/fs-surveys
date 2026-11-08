@@ -126,7 +126,10 @@ async fn delete_leaves_nothing_behind() {
         .unwrap();
     assert_eq!(e.main.query(&Query::new()).await.unwrap().len(), 4);
     e.repo.delete(s.id()).await.unwrap();
-    assert!(e.main.query(&Query::new()).await.unwrap().is_empty());
+    assert_eq!(
+        e.main.query(&Query::new()).await.unwrap(),
+        [] as [fs_objects::StoredObject; 0]
+    );
     assert!(e.repo.get(s.id()).await.unwrap().is_none());
 
     let (a, q) = open_survey(&e, Anonymity::AnonymousOnce).await;
@@ -139,13 +142,16 @@ async fn delete_leaves_nothing_behind() {
         )
         .await
         .unwrap();
-    assert!(e.ballots.count(&Query::new()).await.unwrap() == 1);
+    assert_eq!(e.ballots.count(&Query::new()).await.unwrap(), 1);
     e.repo.delete(a.id()).await.unwrap();
     assert!(
         e.ballots.count(&Query::new()).await.unwrap() == 0,
         "the box is gone"
     );
-    assert!(e.main.query(&Query::new()).await.unwrap().is_empty());
+    assert_eq!(
+        e.main.query(&Query::new()).await.unwrap(),
+        [] as [fs_objects::StoredObject; 0]
+    );
     assert!(matches!(
         e.repo.delete(a.id()).await,
         Err(Error::NotFound { .. })

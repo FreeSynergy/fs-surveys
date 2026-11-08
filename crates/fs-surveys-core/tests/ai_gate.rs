@@ -73,7 +73,7 @@ async fn saying_i_am_a_human_does_not_help() {
     say(&e, &s, &bot("liar"), claim).await.unwrap();
     let sum = e.repo.summary(s.id(), ALL_STAGES).await.unwrap();
     assert_eq!(sum.ballots, 0, "the claim did not make it a person");
-    assert!(sum.questions[0].texts.is_empty());
+    assert_eq!(sum.questions[0].texts, [] as [std::string::String; 0]);
     assert_eq!(sum.ai.unwrap().ballots, 1);
 }
 

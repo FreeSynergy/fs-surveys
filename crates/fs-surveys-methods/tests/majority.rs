@@ -7,7 +7,7 @@ use fs_surveys_methods::{Error, Method, evaluate};
 fn exactly_half_is_not_a_majority() {
     let c = ids(&["a", "b"]);
     let t = evaluate(&Method::Majority, &c, &singles(&[("a", 2), ("b", 2)])).unwrap();
-    assert!(t.winners.is_empty());
+    assert_eq!(t.winners, [] as [std::string::String; 0]);
     assert!(t.note.contains("half"));
     let t = evaluate(&Method::Majority, &c, &singles(&[("a", 3), ("b", 2)])).unwrap();
     assert_eq!(winners(&t), ["a"]);
@@ -21,7 +21,7 @@ fn majority_blank_options_keep_ranks() {
         &singles(&[("a", 1), ("b", 1), ("c", 1)]),
     )
     .unwrap();
-    assert!(t.winners.is_empty());
+    assert_eq!(t.winners, [] as [std::string::String; 0]);
     assert_eq!([rank(&t, "a"), rank(&t, "b"), rank(&t, "c")], [1, 1, 1]);
 }
 
@@ -47,7 +47,7 @@ fn threshold_boundary_with_three_ballots() {
         &b,
     )
     .unwrap();
-    assert!(t.winners.is_empty());
+    assert_eq!(t.winners, [] as [std::string::String; 0]);
     assert!(t.note.contains("67%"));
 }
 

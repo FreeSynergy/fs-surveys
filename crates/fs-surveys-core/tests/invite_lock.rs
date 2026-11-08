@@ -38,6 +38,7 @@ fn slow(fail_first: bool) -> Arc<Slow> {
     })
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn a_submit_does_not_wait_for_slow_deliveries() {
     let e = env().await;
@@ -65,6 +66,7 @@ async fn a_submit_does_not_wait_for_slow_deliveries() {
     assert_eq!(d.sent.load(Ordering::SeqCst), 5);
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn parallel_invites_of_one_person_send_one_token() {
     let e = env().await;

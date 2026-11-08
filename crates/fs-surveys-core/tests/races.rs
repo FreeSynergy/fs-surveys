@@ -99,12 +99,12 @@ async fn parallel_named_submits_make_one_response() {
             async move {
                 r1.submit(id, Credential::Person(w1), choice(q, "a"))
                     .await
-                    .unwrap()
+                    .unwrap();
             },
             async move {
                 r2.submit(id, Credential::Person(w2), choice(q, "b"))
                     .await
-                    .unwrap()
+                    .unwrap();
             }
         );
         assert_eq!(e.repo.summary(id, ALL_STAGES).await.unwrap().ballots, 1);

@@ -32,6 +32,7 @@ async fn old_ballots_without_a_class_are_never_counted_among_people() {
     assert_eq!(sum.ai.expect("shown apart").ballots, 3);
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn old_token_hashes_are_ai_tokens() {
     let e = env().await;

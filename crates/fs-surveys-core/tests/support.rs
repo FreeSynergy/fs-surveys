@@ -50,7 +50,7 @@ async fn every_capability_of_the_contract_is_listed() {
         );
     }
     let why = caps.why_not("survey.publicLink").expect("not built");
-    assert!(!why.reason().is_empty());
+    assert_ne!(why.reason(), "");
     assert!(caps.why_not("poll.embed").is_some());
     assert!(caps.is_supported("survey.widen") && caps.is_supported("result.filter"));
     assert!(
@@ -61,6 +61,7 @@ async fn every_capability_of_the_contract_is_listed() {
     );
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn public_surveys_answer_unsupported() {
     let e = env().await;

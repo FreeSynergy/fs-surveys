@@ -36,6 +36,7 @@ async fn refused(e: &Env, s: &Survey, a: Vec<Answer>) {
     assert!(matches!(r, Err(Error::Invalid(_))), "{r:?}");
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn answers_are_validated() {
     let e = env().await;

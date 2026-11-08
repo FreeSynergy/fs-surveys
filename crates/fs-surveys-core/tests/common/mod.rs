@@ -162,6 +162,7 @@ pub fn choice(q: ObjectId, c: &str) -> Vec<Answer> {
 }
 
 /// `n` anonymous submits of `c`.
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 pub async fn submit_open(e: &Env, s: &Survey, q: ObjectId, c: &str, n: usize) {
     for _ in 0..n {
         e.repo.submit(s.id(), human(), choice(q, c)).await.unwrap();

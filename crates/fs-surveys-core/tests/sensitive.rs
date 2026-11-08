@@ -44,14 +44,9 @@ async fn an_unencrypted_store_refuses_the_categories() {
         matches!(err, Error::Store(fs_objects::Error::EncryptionRequired(_))),
         "{err}"
     );
-    assert!(
-        repo.get(s.id())
-            .await
-            .unwrap()
-            .unwrap()
-            .envelope
-            .sensitive
-            .is_empty()
+    assert_eq!(
+        repo.get(s.id()).await.unwrap().unwrap().envelope.sensitive,
+        [] as [std::string::String; 0]
     );
     drop(repo);
     cleanup(&path);

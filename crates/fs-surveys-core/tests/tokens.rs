@@ -83,10 +83,13 @@ async fn no_token_is_in_any_store_report_or_return_value() {
 
 fn fs_hash(token: &str) -> String {
     use sha2::{Digest, Sha256};
+    use std::fmt::Write;
     Sha256::digest(token.as_bytes())
         .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+        .fold(String::new(), |mut hex, b| {
+            write!(hex, "{b:02x}").unwrap();
+            hex
+        })
 }
 
 #[tokio::test]

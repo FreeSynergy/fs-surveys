@@ -7,6 +7,7 @@ use fs_surveys_core::{
     ALL_STAGES, Anonymity, Credential, Error, Question, QuestionKind, Survey, SurveyState,
 };
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 async fn with_number(
     e: &Env,
     a: Anonymity,

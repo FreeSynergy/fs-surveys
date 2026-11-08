@@ -34,7 +34,7 @@ fn perfect_condorcet_cycle_ties_everyone() {
     let t = evaluate(&Method::Schulze, &ids(&["A", "B", "C"]), &b).unwrap();
     assert_eq!(winners(&t), ["A", "B", "C"]);
     assert!(t.options.iter().all(|o| o.rank == 1 && o.value == 0.0));
-    assert!(!t.note.is_empty());
+    assert_ne!(t.note, "");
 }
 
 #[test]

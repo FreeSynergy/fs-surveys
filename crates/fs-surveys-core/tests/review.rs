@@ -70,6 +70,7 @@ async fn option_scores_count_the_answers_that_scored_each_choice() {
     );
 }
 
+#[allow(clippy::many_single_char_names)] // short fixture names (env, survey, question)
 #[tokio::test]
 async fn required_questions_refuse_empty_answers() {
     let e = env().await;

@@ -30,7 +30,7 @@ fn tie_lists_all_and_ranks_share() {
         [rank(&t, "b"), rank(&t, "c"), rank(&t, "d"), rank(&t, "a")],
         [1, 1, 3, 4]
     );
-    assert!(!t.note.is_empty());
+    assert_ne!(t.note, "");
 }
 
 #[test]
