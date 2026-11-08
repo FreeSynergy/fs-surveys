@@ -4,6 +4,8 @@
 
 use std::sync::{Arc, Mutex};
 
+pub mod ai;
+
 use async_trait::async_trait;
 use fs_objects::{ActivityFilter, ObjectId, Query, Store, TursoStore};
 use fs_surveys_core::{
@@ -72,7 +74,7 @@ impl GroupLookup for Groups {
     }
 }
 
-/// Everybody in these tests is a person.
+/// Everybody in the group tests is a person.
 struct Humans;
 
 #[async_trait]
@@ -112,7 +114,8 @@ pub async fn env() -> Env {
     let repo = SurveyRepo::new(main.clone(), ballots.clone(), ME)
         .with_instance("example.org")
         .with_groups(Arc::new(Groups(groups.clone())))
-        .with_delivery(delivery.clone());
+        .with_delivery(delivery.clone())
+        .with_ai_marking(Arc::new(ai::Marks));
     Env {
         repo,
         main,
@@ -120,6 +123,11 @@ pub async fn env() -> Env {
         delivery,
         groups,
     }
+}
+
+/// The credential of a person on an `anonymousOpen` survey: only used to ask the marking.
+pub fn human() -> Credential {
+    Credential::Person(person("h"))
 }
 
 pub fn person(n: &str) -> String {
@@ -156,10 +164,7 @@ pub fn choice(q: ObjectId, c: &str) -> Vec<Answer> {
 /// `n` anonymous submits of `c`.
 pub async fn submit_open(e: &Env, s: &Survey, q: ObjectId, c: &str, n: usize) {
     for _ in 0..n {
-        e.repo
-            .submit(s.id(), Credential::None, choice(q, c))
-            .await
-            .unwrap();
+        e.repo.submit(s.id(), human(), choice(q, c)).await.unwrap();
     }
 }
 
@@ -223,7 +228,7 @@ impl Env {
         use fs_objects::traits::UnloggedObjects;
         match self.ballots.read_unlogged(s.id()).await.unwrap() {
             None => true,
-            Some(o) => o.content["tokens"].as_array().unwrap().is_empty(),
+            Some(o) => o.content["people"]["tokens"].as_array().unwrap().is_empty(),
         }
     }
 }

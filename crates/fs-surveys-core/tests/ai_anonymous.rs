@@ -121,7 +121,7 @@ async fn anonymous_open_asks_the_marking_and_stores_nobody() {
         );
     }
     assert!(
-        !raw(&e.ballots).await.contains(&ada),
+        !raw_box(&e, &s).await.contains(&ada),
         "the person is not kept"
     );
     assert!(!raw(&e.main).await.contains(&ada), "nor in the main store");
@@ -186,7 +186,7 @@ async fn nothing_in_the_ballot_box_names_a_person() {
         .submit(s.id(), Credential::Token(t), choice(q, "c"))
         .await
         .unwrap();
-    let boxed = raw(&e.ballots).await;
+    let boxed = raw_box(&e, &s).await;
     assert!(
         !boxed.contains("bot-1") && !boxed.contains("ada"),
         "{boxed}"
