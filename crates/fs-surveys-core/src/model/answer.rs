@@ -49,8 +49,12 @@ pub struct Answer {
 /// Who is answering; the arm needed follows from the anonymity of the survey.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Credential {
-    /// `anonymousOpen`.
+    /// `anonymousOpen` with no identity: refused, because the question "Are you an AI?" must be
+    /// answered; use [`Credential::Open`].
     None,
+    /// `anonymousOpen`: anyone, no proof. The respondent's own answer to "Are you an AI?" and the
+    /// signals for the pattern report.
+    Open(super::OpenMeta),
     /// `named`: the person's IRI.
     Person(String),
     /// `anonymousOnce`: the token sent to the person.
@@ -64,6 +68,7 @@ impl std::fmt::Debug for Credential {
         // A token must not end up in a log line.
         f.write_str(match self {
             Self::None => "Credential::None",
+            Self::Open(_) => "Credential::Open(..)",
             Self::Person(_) => "Credential::Person(..)",
             Self::Token(_) => "Credential::Token(..)",
             Self::Proof(_) => "Credential::Proof(..)",

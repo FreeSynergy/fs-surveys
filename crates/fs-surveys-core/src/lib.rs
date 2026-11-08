@@ -35,8 +35,9 @@ pub use error::{Error, Result};
 pub use fs_surveys_methods::{Ballot, Method, OptionResult, Tally};
 pub use model::{
     ALL_STAGES, Anonymity, Answer, AnswerValue, Choice, ChoiceCount, Class, Condition, ConditionOp,
-    Credential, Cursor, Decision, Evaluation, InviteReport, NamedResponse, OptionScore, Page,
-    Question, QuestionKind, QuestionSummary, Summary, Survey, SurveyState,
+    Credential, Cursor, Decision, Evaluation, InviteReport, NamedResponse, OpenMeta, OptionScore,
+    Page, Patterns, Question, QuestionKind, QuestionSummary, Signals, Summary, Survey, SurveyState,
+    Voluntary,
 };
 pub use repo::{
     BOX_TYPE, CONTEXT, DECISION_TYPE, INVITEE_TYPE, RESPONSE_TYPE, SURVEY_TYPE, SurveyRepo,

@@ -41,3 +41,23 @@ impl Drop for Mark {
             .remove(&self.key);
     }
 }
+
+/// Open submits of the last minute per survey, in memory only.
+pub(super) type Arrivals =
+    Arc<Mutex<std::collections::HashMap<ObjectId, std::collections::VecDeque<std::time::Instant>>>>;
+
+/// Note an arrival for `survey` and tell whether more than `limit` arrived within the last minute.
+pub(super) fn note_arrival(set: &Arrivals, survey: ObjectId, limit: usize) -> bool {
+    let now = std::time::Instant::now();
+    let window = std::time::Duration::from_secs(60);
+    let mut all = set.lock().unwrap_or_else(PoisonError::into_inner);
+    let marks = all.entry(survey).or_default();
+    while marks
+        .front()
+        .is_some_and(|t| now.saturating_duration_since(*t) > window)
+    {
+        marks.pop_front();
+    }
+    marks.push_back(now);
+    marks.len() > limit
+}

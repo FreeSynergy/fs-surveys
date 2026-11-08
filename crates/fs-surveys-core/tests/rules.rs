@@ -7,7 +7,10 @@ use fs_surveys_core::{
     ALL_STAGES, Anonymity, Credential, Error, Question, QuestionKind, Survey, SurveyState,
 };
 
-async fn with_number(e: &Env, a: Anonymity) -> (Survey, fs_objects::ObjectId, fs_objects::ObjectId) {
+async fn with_number(
+    e: &Env,
+    a: Anonymity,
+) -> (Survey, fs_objects::ObjectId, fs_objects::ObjectId) {
     let s = e.repo.create("Pay", a, &[]).await.unwrap();
     e.repo.edit(s.id(), "Pay", a, 3).await.unwrap();
     let (_, q) = e.repo.add_question(s.id(), pick()).await.unwrap();

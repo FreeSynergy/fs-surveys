@@ -104,6 +104,7 @@ impl SurveyRepo {
         let none = Collected {
             rows: vec![],
             held_back: found.held_back,
+            patterns: None,
         };
         let c = if shown { found } else { &none };
         if s.is_anonymous() {

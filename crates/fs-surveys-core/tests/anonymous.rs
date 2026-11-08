@@ -56,7 +56,11 @@ async fn box_holds_no_person_time_or_ballot_id() {
     submit_open(&e, &s, q, "b", 2).await;
     let content = box_json(&e, &s).await;
     let keys: Vec<_> = content.as_object().unwrap().keys().cloned().collect();
-    assert_eq!(keys, ["ai", "people"], "the lane of AIs is its own key");
+    assert_eq!(
+        keys,
+        ["ai", "people", "voluntary"],
+        "the lane of AIs is its own key; voluntary details are tied to no ballot"
+    );
     for ballot in content["people"]["pending"].as_array().unwrap() {
         let answers = ballot.as_array().unwrap();
         assert_eq!(answers.len(), 1);

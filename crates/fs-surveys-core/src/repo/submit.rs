@@ -8,9 +8,10 @@ use fs_interfaces::Unsupported;
 use fs_objects::ObjectId;
 
 use super::handle::SurveyRepo;
-use crate::check::{admits, drop_empty, validate_answers};
+use super::inflight::note_arrival;
+use crate::check::{BURST_LIMIT, admits, drop_empty, signals_of, validate_answers};
 use crate::error::{Error, Result};
-use crate::model::{Anonymity, Answer, Class, Credential, Survey, SurveyState};
+use crate::model::{Anonymity, Answer, Class, Credential, OpenMeta, Survey, SurveyState};
 use crate::tokens::hash_token;
 
 fn wrong(needs: &str) -> Error {
@@ -29,7 +30,8 @@ impl SurveyRepo {
         // Asked before the lock: the marking may be slow, and the survey lock should not wait for it.
         let class = match &credential {
             Credential::Person(p) => Some(self.class_for(Some(p)).await?),
-            Credential::None => Some(Class::Ai),
+            // The respondent's own claim: the question "Are you an AI?" is answered, or there is no ballot.
+            Credential::Open(m) => Some(open_class(m)?),
             _ => None,
         };
         // State is read and the ballot written under one lock, so a submit cannot land after
@@ -52,12 +54,24 @@ impl SurveyRepo {
             (Anonymity::Named, Credential::Person(p), Some(class)) => {
                 self.submit_named(&s, &p, answers, class).await
             }
-            (Anonymity::AnonymousOpen, Credential::Person(_) | Credential::None, Some(class)) => {
-                // The person is only asked about, never kept.
+            (Anonymity::AnonymousOpen, Credential::Person(_), Some(class)) => {
+                // Vouched for by the host: the marking decides; the person is never kept.
                 admits(&s, class)?;
                 validate_answers(&s, &answers, true)?;
                 self.edit_box(&s, |b| b.add_ballot(class, ballot(&s, answers)))
                     .await
+            }
+            (Anonymity::AnonymousOpen, Credential::Open(meta), Some(class)) => {
+                // Anyone may answer, with no proof. The class is the respondent's claim; the patterns
+                // are counted and shown, no answer is left out.
+                admits(&s, class)?;
+                validate_answers(&s, &answers, true)?;
+                let burst = note_arrival(&self.arrivals, id, BURST_LIMIT);
+                let signals = signals_of(&answers, &meta, burst);
+                self.edit_box(&s, |b| {
+                    b.add_open_ballot(class, ballot(&s, answers), &signals)
+                })
+                .await
             }
             (Anonymity::AnonymousOnce, Credential::Token(t), _) => {
                 validate_answers(&s, &answers, true)?;
@@ -73,7 +87,7 @@ impl SurveyRepo {
                 .await
             }
             (Anonymity::Named, _, _) => Err(wrong("person")),
-            (Anonymity::AnonymousOpen, _, _) => Err(wrong("none or person")),
+            (Anonymity::AnonymousOpen, _, _) => Err(wrong("open or person")),
             _ => Err(wrong("token")),
         }
     }
@@ -83,4 +97,46 @@ impl SurveyRepo {
 fn ballot(s: &Survey, mut answers: Vec<Answer>) -> Vec<Answer> {
     answers.sort_by_key(|a| s.position(a.question));
     answers
+}
+
+/// The class an open respondent claims. The claim is required and is not a proof.
+fn open_class(meta: &OpenMeta) -> Result<Class> {
+    match meta.declared_ai {
+        Some(true) => Ok(Class::Ai),
+        Some(false) => Ok(Class::Human),
+        None => Err(Error::Refused(
+            "an open survey asks \"Are you an AI?\"; answer it".into(),
+        )),
+    }
+}
+
+impl SurveyRepo {
+    /// `response.voluntary`: details given after the answers on an anonymous survey (age group, role).
+    /// Kept apart from the ballots with no link to one; shown only when at least `minGroup` were
+    /// given. Allowed while the survey is open.
+    pub async fn add_voluntary(
+        &self,
+        id: ObjectId,
+        details: Vec<crate::model::Voluntary>,
+    ) -> Result<()> {
+        let _guard = self.lock_for(id).await;
+        let s = self.require(id).await?;
+        if !s.is_anonymous() || s.state != SurveyState::Open {
+            return Err(Error::Refused(
+                "voluntary details go with an open anonymous survey".into(),
+            ));
+        }
+        let details: Vec<_> = details
+            .into_iter()
+            .map(|d| crate::model::Voluntary {
+                key: d.key.trim().to_string(),
+                value: d.value.trim().to_string(),
+            })
+            .filter(|d| !d.key.is_empty() && !d.value.is_empty())
+            .collect();
+        if details.is_empty() {
+            return Ok(());
+        }
+        self.edit_box(&s, |b| b.add_voluntary(details)).await
+    }
 }

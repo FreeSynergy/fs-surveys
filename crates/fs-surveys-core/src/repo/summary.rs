@@ -26,6 +26,8 @@ pub(super) fn totals(s: &Survey, c: &Collected) -> Result<Summary> {
         hidden: s.is_anonymous() && rows.len() < usize::from(s.min_group),
         questions,
         held_back,
+        patterns: c.patterns,
+        voluntary: vec![],
         ai: None,
     })
 }
@@ -34,6 +36,7 @@ pub(super) fn totals(s: &Survey, c: &Collected) -> Result<Summary> {
 fn both(s: &Survey, lanes: &Lanes) -> Result<Summary> {
     let (mut people, ai) = lanes.run(|c| totals(s, c))?;
     people.ai = ai.map(Box::new);
+    people.voluntary.clone_from(&lanes.voluntary);
     Ok(people)
 }
 

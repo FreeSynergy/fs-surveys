@@ -19,6 +19,7 @@ Version 0.1.0 plus branch `ai-participants` (not tagged, not merged). Contract m
 | Decisions linked to task IRIs | done |
 | `survey.publicLink`, `poll.embed` | `Unsupported`; `publish` refuses a `public` survey |
 | AI participants: permission per survey (default no), marking by the host, doubt = AI, results apart in every reading | done, **provisional**, see "AI participants" |
+| Open surveys: claim "Are you an AI?", pattern counts shown, voluntary details | done, **provisional** |
 | AI participants on `public` surveys | `Unsupported` with the rest of `public` |
 | AI guard against a token handed to an AI, and against a caller who names someone else | **not possible**, stated limits below |
 | capnp server | not built; thread 3 |
@@ -55,10 +56,19 @@ not vouch for costs one retry. This follows `fs-groups` (`AiMarking`: no answer 
   hash in the box (not linked to the person). Spending a token puts the ballot into the lane of the token. An AI that is not allowed gets no
   token (`InviteReport.refused`). **Limit, stated:** a person can hand their token to an AI. The core cannot see that; the ballot counts as the
   class of the person who was invited. An invited AI can likewise hand its token to a person. The same holds for any poll with tokens.
-* `anonymousOpen`: there is no identity, so nothing to ask the marking about. The host passes the authenticated person in `Credential::Person`;
-  the core uses it **only to ask the marking** and stores nothing. `Credential::None` is "no identity", so doubt, so AI. **This changes the
-  behaviour of 0.1.0**, where `none` was the credential of `anonymousOpen`. Open question to the owner: is that what is wanted, or should
-  `anonymousOpen` stay without any AI guard? Provisional answer: guard, because "never mixed" is the stronger rule.
+* `anonymousOpen` (**owner 2026-11-07, replaces the rule "no person from the host = AI"**): anyone may answer, with no proof and no
+  account. The respondent hands in `Credential::Open(OpenMeta)`: the answer to **"Are you an AI?"** (required; without it there is no
+  ballot), the time the form was open, and the value of a hidden field. The answer is a **claim, not a proof**, and the interface says so.
+  A declared AI goes to the AI lane and needs `aiAllowed`; anyone else goes to the people lane. `Credential::None` is refused.
+  A host that vouches for a person still passes `Credential::Person`; then the marking decides and the person is not kept.
+* **Patterns of open answers** (counted, shown, never used to drop an answer): sent faster than `1500 ms + 600 ms` per answer; hidden field
+  filled; the same choice in every one of at least three choice or scale answers; a burst (more than ten open submits in one minute, counted
+  in memory only); no timing given; the same free text (twelve characters or more) in several ballots, counted when read. They are **counts
+  per lane**, kept with the pending ballots and released with their batch, never one flag per ballot, so no flag can be tied to an answer
+  and no arrival time is written. `Summary.patterns` shows them beside the figures; `ballots` always holds every released answer.
+  Limit: patterns are hints. A careful bot passes all of them, and a fast person trips some.
+* **Voluntary details after the answers** (`add_voluntary`): `key = value` pairs (age group, role), kept in a list of the box with no link to
+  a ballot, inserted at a random position, shown in `Summary.voluntary` only when at least `minGroup` people gave details.
 * `public`: unchanged, `Unsupported` (`survey.publicLink`). When it is built it needs the same decision.
 * Batches: each class has its own pending list, batches and `minGroup` rule, so AI ballots never pad a batch of people (nor the other way round).
 * **The core does not authenticate.** `person` and `by` come from the host, as everywhere in this crate. If the host lets a caller name any

@@ -28,6 +28,9 @@ pub struct SurveyRepo {
     pub(super) feed: Arc<Registry>,
     /// One lock per survey (its box and decisions of it included), from read to save.
     pub(super) inflight: super::inflight::InFlight,
+    /// Arrival marks of open submits in the last minute, per survey. Only in memory, never stored:
+    /// a time written down would identify an answer.
+    pub(super) arrivals: super::inflight::Arrivals,
     pub(crate) locks: Arc<std::sync::Mutex<HashMap<ObjectId, Arc<Mutex<()>>>>>,
 }
 
@@ -53,6 +56,7 @@ impl SurveyRepo {
             feed: Arc::new(Registry::default()),
             locks: Arc::default(),
             inflight: Arc::default(),
+            arrivals: Arc::default(),
         }
     }
 

@@ -113,13 +113,17 @@ async fn anonymous_open_asks_the_marking_and_stores_nobody() {
         .submit(s.id(), Credential::Person(ada.clone()), choice(q, "a"))
         .await
         .unwrap();
-    for cred in [Credential::Person(bot("1")), Credential::None] {
-        let r = e.repo.submit(s.id(), cred, choice(q, "a")).await;
-        assert!(
-            matches!(r, Err(Error::AiNotAllowed)),
-            "no identity is doubt: {r:?}"
-        );
-    }
+    let r = e
+        .repo
+        .submit(s.id(), Credential::Person(bot("1")), choice(q, "a"))
+        .await;
+    assert!(matches!(r, Err(Error::AiNotAllowed)), "marked AI: {r:?}");
+    // No identity is no longer doubt: an open survey asks "Are you an AI?" (see `open.rs`).
+    let r = e
+        .repo
+        .submit(s.id(), Credential::None, choice(q, "a"))
+        .await;
+    assert!(matches!(r, Err(Error::Refused(_))), "{r:?}");
     assert!(
         !raw_box(&e, &s).await.contains(&ada),
         "the person is not kept"

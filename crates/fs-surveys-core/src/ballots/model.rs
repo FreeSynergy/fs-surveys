@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::model::{Answer, Class};
+use crate::model::{Answer, Class, Signals, Voluntary};
 use crate::random::{insert_random, shuffle};
 
 /// One anonymous ballot: answers in question order, nothing else.
@@ -19,6 +19,9 @@ pub type Ballot = Vec<Answer>;
 pub struct Batch {
     stage: u16,
     ballots: Vec<Ballot>,
+    /// The pattern counts of these ballots (open surveys), released with them.
+    #[serde(default)]
+    signals: Signals,
 }
 
 /// Everything of one class.
@@ -28,6 +31,8 @@ pub struct Lane {
     pending: Vec<Ballot>,
     batches: Vec<Batch>,
     tokens: Vec<String>,
+    /// Pattern counts of the pending ballots; they join a batch when it is released.
+    pending_signals: Signals,
 }
 
 impl Lane {
@@ -37,7 +42,12 @@ impl Lane {
         }
         let mut ballots = std::mem::take(&mut self.pending);
         shuffle(&mut ballots)?;
-        self.batches.push(Batch { stage, ballots });
+        let signals = std::mem::take(&mut self.pending_signals);
+        self.batches.push(Batch {
+            stage,
+            ballots,
+            signals,
+        });
         Ok(())
     }
 }
@@ -48,6 +58,8 @@ impl Lane {
 pub struct BallotBox {
     people: Lane,
     ai: Lane,
+    /// Details given after the answers, in random order, tied to no ballot.
+    voluntary: Vec<Vec<Voluntary>>,
 }
 
 /// The stored form. Version 0.1.0 wrote one lane at the top with no class; such ballots and token
@@ -58,6 +70,8 @@ struct Stored {
     people: Lane,
     #[serde(default)]
     ai: Lane,
+    #[serde(default)]
+    voluntary: Vec<Vec<Voluntary>>,
     #[serde(flatten)]
     legacy: Lane,
 }
@@ -72,6 +86,7 @@ impl From<Stored> for BallotBox {
         Self {
             people: s.people,
             ai: s.ai,
+            voluntary: s.voluntary,
         }
     }
 }
@@ -96,6 +111,39 @@ impl BallotBox {
     /// Add a ballot at a random position among the pending ones of its class.
     pub fn add_ballot(&mut self, class: Class, ballot: Ballot) -> Result<()> {
         insert_random(&mut self.lane_mut(class).pending, ballot)
+    }
+
+    /// Add a ballot of an open survey together with its pattern counts (kept as a count, not with the ballot).
+    pub fn add_open_ballot(
+        &mut self,
+        class: Class,
+        ballot: Ballot,
+        signals: &Signals,
+    ) -> Result<()> {
+        self.add_ballot(class, ballot)?;
+        self.lane_mut(class).pending_signals.add(signals);
+        Ok(())
+    }
+
+    /// Add voluntary details at a random position among the others.
+    pub fn add_voluntary(&mut self, details: Vec<Voluntary>) -> Result<()> {
+        insert_random(&mut self.voluntary, details)
+    }
+
+    /// The voluntary details given so far.
+    pub fn voluntary(&self) -> &[Vec<Voluntary>] {
+        &self.voluntary
+    }
+
+    /// Pattern counts of the released batches of `class` and `stage` (`0xFFFF` = all).
+    pub fn released_signals(&self, class: Class, stage: u16) -> Signals {
+        let mut total = Signals::default();
+        for b in &self.lane(class).batches {
+            if stage == crate::model::ALL_STAGES || b.stage == stage {
+                total.add(&b.signals);
+            }
+        }
+        total
     }
 
     /// Keep a token hash in the lane of the class it was issued to (sorted, so the order says nothing

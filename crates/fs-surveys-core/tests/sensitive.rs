@@ -113,7 +113,10 @@ async fn an_unencrypted_ballot_store_refuses_the_box_of_a_sensitive_survey() {
     let s = repo.publish(s.id()).await.unwrap();
     let r = repo.submit(s.id(), human(), choice(q, "a")).await;
     assert!(
-        matches!(r, Err(Error::Store(fs_objects::Error::EncryptionRequired(_)))),
+        matches!(
+            r,
+            Err(Error::Store(fs_objects::Error::EncryptionRequired(_)))
+        ),
         "{r:?}"
     );
     drop(repo);

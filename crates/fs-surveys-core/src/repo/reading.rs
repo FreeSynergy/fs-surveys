@@ -10,8 +10,11 @@ use fs_objects::{ObjectId, Query};
 
 use super::consts::RESPONSE_TYPE;
 use super::handle::SurveyRepo;
+use crate::check::same_text;
 use crate::error::Result;
-use crate::model::{ALL_STAGES, Answer, AnswerValue, Class, Survey, SurveyState};
+use crate::model::{
+    ALL_STAGES, Anonymity, Answer, AnswerValue, ChoiceCount, Class, Patterns, Survey, SurveyState,
+};
 
 /// One respondent's answers; the person is known on `named` only.
 pub(super) struct Row {
@@ -25,6 +28,8 @@ pub(super) struct Row {
 pub(super) struct Collected {
     pub rows: Vec<Row>,
     pub held_back: u32,
+    /// Patterns of an open survey (counts only).
+    pub patterns: Option<Patterns>,
 }
 
 /// The counting answers, split by class. Built only by `collect`, which puts a row in the lane of
@@ -34,6 +39,8 @@ pub(super) struct Lanes {
     ai: Collected,
     /// The AI part is shown: the survey allows AIs, or holds AI answers.
     show_ai: bool,
+    /// Voluntary details with how often, if enough were given. Not tied to a class.
+    pub voluntary: Vec<ChoiceCount>,
 }
 
 impl Lanes {
@@ -63,6 +70,22 @@ impl Lanes {
     }
 }
 
+/// `key=value` with how often. Shown only when at least `minGroup` details were given, or the number
+/// of details would show when people answered.
+fn voluntary_counts(s: &Survey, b: &crate::ballots::BallotBox) -> Vec<ChoiceCount> {
+    let all: Vec<_> = b.voluntary().iter().flatten().collect();
+    if b.voluntary().len() < usize::from(s.min_group) {
+        return vec![];
+    }
+    let mut by: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
+    for d in all {
+        *by.entry(format!("{}={}", d.key, d.value)).or_default() += 1;
+    }
+    by.into_iter()
+        .map(|(choice, count)| ChoiceCount { choice, count })
+        .collect()
+}
+
 fn count(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
 }
@@ -75,8 +98,9 @@ impl SurveyRepo {
             // While the survey is open the number would tick with every submit and show when
             // people answered; it is real once the survey is closed.
             let open = s.state == SurveyState::Open;
-            let lane = |class: Class| Collected {
-                rows: b
+            let is_open = s.anonymity == Anonymity::AnonymousOpen;
+            let lane = |class: Class| {
+                let rows: Vec<Row> = b
                     .released(class, stage)
                     .into_iter()
                     .map(|(batch, answers)| Row {
@@ -84,13 +108,22 @@ impl SurveyRepo {
                         answers: answers.clone(),
                         batch,
                     })
-                    .collect(),
-                held_back: if open { 0 } else { count(b.held_back(class)) },
+                    .collect();
+                let patterns = is_open.then(|| Patterns {
+                    signals: b.released_signals(class, stage),
+                    same_text: same_text(rows.iter().map(|r| &r.answers[..])),
+                });
+                Collected {
+                    rows,
+                    held_back: if open { 0 } else { count(b.held_back(class)) },
+                    patterns,
+                }
             };
             return Ok(Lanes {
                 people: lane(Class::Human),
                 ai: lane(Class::Ai),
                 show_ai: s.ai_allowed || b.has_ai_ballots(),
+                voluntary: voluntary_counts(s, &b),
             });
         }
         let q = Query::new()
@@ -134,12 +167,15 @@ impl SurveyRepo {
             people: Collected {
                 rows: people,
                 held_back: 0,
+                patterns: None,
             },
             ai: Collected {
                 rows: ai,
                 held_back: 0,
+                patterns: None,
             },
             show_ai,
+            voluntary: vec![],
         })
     }
 }

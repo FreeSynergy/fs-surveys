@@ -4,3 +4,5 @@
 
 mod io;
 mod model;
+
+pub(crate) use model::BallotBox;

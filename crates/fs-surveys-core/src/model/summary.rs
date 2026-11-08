@@ -42,6 +42,11 @@ pub struct Summary {
     pub questions: Vec<QuestionSummary>,
     /// Answers not released yet.
     pub held_back: u32,
+    /// Patterns of an open survey, shown beside the figures; nothing is left out because of them.
+    pub patterns: Option<super::Patterns>,
+    /// Voluntary details given after the answers, as `key=value` with how often; shown only when
+    /// at least `minGroup` details were given.
+    pub voluntary: Vec<ChoiceCount>,
     /// The AI part: the same figures over AI answers only. Everything above is people only. Present
     /// when the survey allows AIs or holds AI answers; the inner part has no `ai` of its own.
     pub ai: Option<Box<Summary>>,
