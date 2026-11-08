@@ -8,7 +8,7 @@ What is different here: anonymous answers do not go into the ordinary store at a
 
 ## What it can do today
 
-Latest tag: `v0.3.0`.
+Latest tag: `v0.0.1`.
 
 - Create and edit surveys with questions and conditions, through the stages draft, open, closed.
 - Named answers: save a draft, resume, submit, replace while open.
