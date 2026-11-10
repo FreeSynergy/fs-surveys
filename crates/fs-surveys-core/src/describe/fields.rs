@@ -51,6 +51,7 @@ pub(super) const DECISION: &[Field] = &[
     Field::reference("survey", "Survey").required(),
     Field::reference("question", "Question").required(),
     Field::choice("method", METHOD).required(),
+    Field::new("thresholdPercent", Text),
     Field::new("outcome", Text).multiple(),
     Field::new("note", MultilineText),
     Field::reference("tasks", "Task").multiple(),

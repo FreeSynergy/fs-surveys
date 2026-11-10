@@ -1,0 +1,22 @@
+name: release
+on:
+  push: { tags: ["v*"] }
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  packages: write
+jobs:
+  release:
+    uses: FreeSynergy/fs-release/.github/workflows/release.yml@main
+    with:
+      binaries: fs-surveys
+      cargo-package: fs-surveys-app
+      name: fs-surveys
+      kind: app
+      app-id: net.freesynergy.Surveys
+      macos: false
+      windows-targets: ""   # not tried on Windows yet
+    secrets:
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

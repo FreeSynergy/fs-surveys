@@ -19,7 +19,11 @@ where
         .run_until(async {
             let main = Arc::new(TursoStore::open_in_memory().await.unwrap());
             let ballots = Arc::new(TursoStore::open_in_memory().await.unwrap());
-            let repo = Arc::new(SurveyRepo::new(main, ballots, "https://example.org/users/owner"));
+            let repo = Arc::new(SurveyRepo::new(
+                main,
+                ballots,
+                "https://example.org/users/owner",
+            ));
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("surveys.sock");
             let bound = bind_socket(&path).await.unwrap();
@@ -53,7 +57,10 @@ async fn types_serves_the_whole_catalog_with_the_flag() {
         let survey = read.get("Survey").unwrap();
         assert_eq!(survey.program, "fs-surveys");
         let public = survey.find_command("publicLink").unwrap();
-        assert!(!public.supported, "unsupported commands are described, and say so");
+        assert!(
+            !public.supported,
+            "unsupported commands are described, and say so"
+        );
         assert!(survey.find_command("create").unwrap().supported);
     })
     .await;

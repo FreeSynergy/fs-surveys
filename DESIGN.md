@@ -1,12 +1,13 @@
 # fs-surveys – Design
 
-`fs-surveys` is the surveys program of FreeSynergy. This repo holds the **program core**, no GUI. Contract: `surveys.capnp` in
-`fs-interfaces` v0.46.0 (draft, provisional: no survey frontends are analysed yet). Program docs:
+`fs-surveys` is the surveys program of FreeSynergy. This repo holds the **program core** (`fs-surveys-core`, `fs-surveys-methods`),
+the **Cap'n Proto root** (`fs-surveys-server`) and the **window** (`fs-surveys-app`, no drawing code). Contract: `surveys.capnp` in
+`fs-interfaces` v0.0.11 (draft, provisional: no survey frontends are analysed yet). Program docs:
 `fs-documentation/docs/en/programs/apps/surveys/`.
 
 ## State
 
-Version 0.3.0 (AI participants and open surveys). Contract methods are the traits; no capnp server and no GUI.
+Version 0.0.1 (AI participants and open surveys; round 3: type descriptions, root server, generated Admin window).
 
 | Area | State |
 |---|---|
@@ -22,7 +23,7 @@ Version 0.3.0 (AI participants and open surveys). Contract methods are the trait
 | Open surveys: claim "Are you an AI?", pattern counts shown, voluntary details | done, **provisional** |
 | AI participants on `public` surveys | `Unsupported` with the rest of `public` |
 | AI guard against a token handed to an AI, and against a caller who names someone else | **not possible**, stated limits below |
-| capnp server | not built; thread 3 |
+| capnp server | root only: `supportReport` and `types` (see "Round 3"); designer, respond, results, decisions, subscribe, capabilities are **not served** (the generated method answers "unimplemented") |
 | Tests | see `cargo test`, real stores |
 
 Checked by an independent reviewer over three rounds before the tag; two rounds found serious errors, and the last found nothing serious.
@@ -152,3 +153,62 @@ Not in the contract yet, so not built: quadratic voting, delegation, clustering,
 Each answers `Unsupported` where the contract has a method, and is listed in `capabilities`: `survey.publicLink` (next step in this repo: adaptive proof of work bound to the survey, global limit, quality score, "all" beside "checked"). DDI export. No contract method yet, nothing here: `poll.date`, `poll.federate`, `template.use`, `survey.translate`.
 
 **Data from 0.1.0 (provisional).** Ballots and token hashes stored without a class count as AI, like named answers without `fs:ai`: in doubt never among people. No server existed, so no real data is affected (`tests/ai_legacy.rs`).
+
+
+## Round 3: type descriptions, root server, Admin window (ADR 0066, 0065)
+
+### What a generated frontend is told
+Four data types, each `DescribesType` in the core (`crates/fs-surveys-core/src/describe/`): `Survey` (AS2 `OrderedCollection` + `fs:` profile),
+`Question` (AS2 `Question` + profile), `SurveyResponse` (the contract's `NamedResponse`; AS2 has no answer) and `Decision` (own profile; AS2 has none).
+Anonymous ballots are not a data type: they have no id and no time on purpose, they only exist as the `submit` command.
+Commands come from **one table**, `crates/fs-surveys-core/src/commands/` (one file per type): name, kind, requirement ids, `supported`, reason, input, result.
+Every command id of `requirements.md` is in it (test `every_requirement_command_is_in_the_table`, which reads a snapshot of the file in
+`tests/data/requirements.md`; set `FS_SURVEYS_REQUIREMENTS` to the file in fs-documentation to compare with the current one) and every command is in the
+description sent over the wire, the unsupported ones with `supported = false` (`fs-types` v0.0.11). The flag is copied in one place (`describe/build.rs`, `carry_flag`).
+The backend refuses an unsupported command with a typed `RunError::Unsupported` (`Gated::try_run`), and reports it locked through `Backend::supported`.
+
+| Type | Commands carried | Commands described, not carried (`supported = false`) |
+|---|---|---|
+| `Survey` | create, edit (the `change` as an `Edit`), anonymity, classify, publish, close, reopen, archive, delete, invite (also `survey.tokens`), widen, aiAllowed, find, summary, evaluate, filter, export, exportAi | subscribe (the core has a subscription, a window has no listener to keep), embed (`poll.embed`), publicLink, date (`poll.date`), template (`template.use`), translate, federate, thread, groups (`result.groups`), delegate (`vote.delegate`), compose, modes |
+| `Question` | add, edit (`Edit`), remove, move, setConditions (`logic.set`), find, types | none |
+| `SurveyResponse` | open, save, find (resume), submit, voluntary | challenge (`survey.publicLink`) |
+| `Decision` | record, find, linkTask, unlinkTask | none |
+
+`question.validate` is not a command of its own: required questions and bounds are checked in `save` and `submit` (the requirement id is carried by both).
+`survey.tokens` is carried by `invite` (tokens are delivered through `TokenDelivery`; none is configured in the window, so the core reports it unsupported there).
+The `supported` flag follows the core where it can: a test checks that every command marked supported is reported supported by the core's own capability report.
+
+### Pattern map (`coding.md` section 2)
+
+| Where | Pattern | Why |
+|---|---|---|
+| `commands/` | Registry of rows | the one source for description, backend rule and the requirements test |
+| `describe/` | Registry entry (trait first) + Builder | `DescribesType` per type; description built from the table |
+| `fs-surveys-server` `SurveysServer` | Adapter | generated `surveys::Server` over the core's `Surveys` trait; `types` hands out `fs_types::describe::CatalogServer` |
+| app `Gated`/`Typed` | Proxy (protection) | one place refuses unsupported commands; a backend cannot forget it |
+| app `survey.rs`, `question.rs`, `response.rs`, `decision.rs` | Repository over the core | `Backend` of the frontend |
+| app `ctx.rs` | Adapter (sync to async) | the frontend calls synchronously with its session locked; the core is async |
+| app `answers.rs` | Adapter + Strategy by question kind | answers as text lines, there is no basic type for an answer |
+| app `charts.rs` | Adapter | summary to a Vega-Lite spec for `fs-components-charts`; no drawing |
+| app `operator.rs` | Strategy (injected `AiMarking`) | the operator is a person, everybody else counts as an AI (doubt rule) |
+
+### Decisions of this round (provisional, reported)
+* **Types and keys.** Choice keys are kebab case (`anonymous-open`), as the description rule demands; the core's camel-case names are converted in `describe::keys`.
+  There is no number or yes/no basic type yet: numbers are text fields (`minGroup`, `min`, `thresholdPercent` ...) that the backend parses (a bad one is refused), yes/no is a choice `yes`/`no`.
+* **Change** follows the rule of 2026-11-10 (`Edit`, field by field, no JSON): a field not in the edit stays, an empty one is cleared. `Survey.edit` takes `name`, `anonymity`, `minGroup`, `categories`;
+  `Question.edit` takes every field of the question. Other commands that look like changes (publish, close, anonymity, setConditions, linkTask ...) are kind `other` on a record, because their input is not an `Edit`.
+* **Ids.** A record id is an IRI: `https://<instance>/surveys/<id>`, a question `<survey>/questions/<id>`, a decision `https://<instance>/decisions/<id>`. Parsing takes the last segment.
+* **Lists.** `find` is the standard `find` (term, list of references). `SurveyResponse.find` needs a survey **and** a person (the core resumes one person's answer); without both the list is empty.
+* **Answers** are text lines `<question IRI>=<value>`; several values joined by `,`; scores `<choice>:<score>`.
+* **Who is a person.** The window marks the operator (the actor) as a human, everybody else gets no answer and so counts as an AI (the core's doubt rule). A named answer typed for another person is therefore refused unless the survey allows AIs.
+* **Refusals.** `BackendError` of the frontend has no variant for "a rule said no" or "not supported". Mapped: unsupported and unknown command to `NotFound`, a rule of the core to `Rejected` on field `id` with `NotInList`, an unreadable value to `Rejected` with `Character`, a store failure to `Unavailable`. The typed reasons stay available through `Gated::try_run` (`RunError`). Reported to thread A.
+* **Versions.** `fs-interfaces` and `fs-types` v0.0.11 everywhere. `fs-admin-frontend` at fs-components rev `7b47a65` (the commit that takes v0.0.11: `Backend::change`, `Backend::supported`, the record id beside the input; the pinned `4688cee` does not compile against v0.0.11). `fs-components-charts` at main rev `5c6ed69`. Blinc through `blinc-app-fix` `5180d4e` and `blinc-layout-fix` `cb17db8`, the pins of `fs-tasks`.
+
+### Unsupported (named, not faked)
+* **Charts in the window.** `question_chart` makes a validated chart (`fs-components-charts`) from a summary, tested, but the generated Admin frontend has no place to show a chart yet: a result is shown as lines of text (`counts`). A chart hook in `fs-admin-frontend` (a result field of a chart kind) is thread A's; until then no chart is drawn in this window.
+* **Server.** `designer`, `respond`, `results`, `decisions`, `subscribe`, `capabilities` of `surveys.capnp` are not served; the window talks to the core in its own process. No `serve` command.
+* **Render code.** The repo has none: there was no `gui.rs` or `surface.rs` before this round, so nothing had to move to `fs-components`.
+* **Question types** matrix and ranking-by-matrix (`question.types`, optional): not in the core (`QuestionKind` has eight kinds, the `types` command lists them).
+* **DDI export**, **anonymous results rows**, **public link**: as in the table above.
+* Needs `Respond.voluntary`, `survey.tokens` delivery (messenger), group lookup (`fs-groups`): not wired in the window; the core reports them unsupported there.
+* No Apple, Windows or simple frontend (R6, later).

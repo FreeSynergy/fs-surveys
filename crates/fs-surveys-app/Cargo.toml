@@ -1,0 +1,27 @@
+[package]
+name = "fs-surveys-app"
+description = "The surveys program of FreeSynergy, window: the generated Admin frontend over the type descriptions of the core (ADR 0066), in the window shell (ADR 0065)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "fs-surveys"
+path = "src/main.rs"
+
+[dependencies]
+fs-surveys-core = { path = "../fs-surveys-core" }
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.1" }
+fs-types = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.11" }
+fs-admin-frontend = { git = "https://github.com/FreeSynergy/fs-components", rev = "7b47a65" }
+fs-components-app = { git = "https://github.com/FreeSynergy/fs-components", rev = "7b47a65" }
+fs-components-fields = { git = "https://github.com/FreeSynergy/fs-components", rev = "7b47a65" }
+fs-components-styles = { git = "https://github.com/FreeSynergy/fs-components", rev = "7b47a65" }
+fs-components-charts = { git = "https://github.com/FreeSynergy/fs-components", rev = "5c6ed69" }
+serde_json = "1"
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+
+[dev-dependencies]
+tempfile = "3"
