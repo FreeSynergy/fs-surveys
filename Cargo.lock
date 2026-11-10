@@ -579,7 +579,7 @@ source = "git+https://github.com/FreeSynergy/fs-groups?tag=v0.0.1#8b4a4580f4f927
 dependencies = [
  "async-trait",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.0.1 (git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.1)",
  "fs-objects",
  "icu_properties",
  "serde_json",
@@ -594,6 +594,15 @@ version = "0.0.1"
 source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.1#9f2d3a0626d7382b478c754eb31834146188dfab"
 dependencies = [
  "capnp",
+]
+
+[[package]]
+name = "fs-interfaces"
+version = "0.0.1"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.11#f8c87155bf5a90dd9f59a906ad6832d95c2c66b0"
+dependencies = [
+ "capnp",
+ "idna",
 ]
 
 [[package]]
@@ -621,9 +630,10 @@ dependencies = [
  "async-trait",
  "chrono",
  "fs-groups-core",
- "fs-interfaces",
+ "fs-interfaces 0.0.1 (git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.11)",
  "fs-objects",
  "fs-surveys-methods",
+ "fs-types",
  "getrandom 0.3.4",
  "serde",
  "serde_json",
@@ -637,6 +647,20 @@ name = "fs-surveys-methods"
 version = "0.0.1"
 dependencies = [
  "thiserror",
+]
+
+[[package]]
+name = "fs-types"
+version = "0.0.1"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.11#f8c87155bf5a90dd9f59a906ad6832d95c2c66b0"
+dependencies = [
+ "capnp",
+ "chrono",
+ "fs-interfaces 0.0.1 (git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.11)",
+ "geo-uri",
+ "iri-string",
+ "oxilangtag",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -706,6 +730,15 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "geo-uri"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "951577f365723b622bfa73389a8def7393d56c28a3fc9aff3de17fae98fc868c"
+dependencies = [
+ "thiserror",
 ]
 
 [[package]]
@@ -991,6 +1024,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "idna"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b0875f23caa03898994f6ddc501886a45c7d3d62d04d2d90788d47be1b1e4de"
+dependencies = [
+ "idna_adapter",
+ "smallvec",
+ "utf8_iter",
+]
+
+[[package]]
+name = "idna_adapter"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714"
+dependencies = [
+ "icu_normalizer",
+ "icu_properties",
+]
+
+[[package]]
 name = "inout"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1017,6 +1071,16 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
+]
+
+[[package]]
+name = "iri-string"
+version = "0.7.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1663ee7d8cf2900cc1414b1e1eec9f348d6eaa3bcab07579f4726a4b8499f447"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]
@@ -1287,6 +1351,15 @@ name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
+
+[[package]]
+name = "oxilangtag"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d3b4eb570abd4a1dcb062c31fd37b832264d9dc7292c3e69acfe926c87b063f"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "pack1"

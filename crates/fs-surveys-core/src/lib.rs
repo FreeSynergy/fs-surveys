@@ -20,7 +20,9 @@
 
 mod ballots;
 mod check;
+pub mod commands;
 mod csv;
+pub mod describe;
 mod error;
 pub mod model;
 mod random;
@@ -31,6 +33,7 @@ mod tokens;
 pub mod traits;
 mod unsupported;
 
+pub use describe::{PROGRAM, registry as type_registry};
 pub use error::{Error, Result};
 pub use fs_surveys_methods::{Ballot, Method, OptionResult, Tally};
 pub use model::{
